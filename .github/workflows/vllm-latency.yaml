@@ -31,16 +31,15 @@ jobs:
       - name: Run latency benchmark
         shell: bash
         run: |
-          for batch_size in {8..8}; do
-            echo "Running batch size $batch_size..."
-            vllm bench latency \
-              --model meta-llama/Llama-3.1-8B-Instruct \
-              --batch-size ${batch_size} \
-              --input-len 512 \
-              --output-len 128 \
-              --output-json latency_bs${batch_size}.json \
-              2>&1 | tee latency_bs${batch_size}.log
-          done
+          python3 ${GITHUB_WORKSPACE}/.github/scripts/multi_batch_latency.py \
+            --model meta-llama/Llama-3.1-8B-Instruct \
+            --bs-start 1 \
+            --bs-end 8 \
+            --bs-step 1 \
+            --input-len 512 \
+            --output-len 128 \
+            --output-json latency_bs \
+            2>&1 | tee benchmark.log
 
       - name: Generate summary page
         run: |
