@@ -50,5 +50,20 @@ jobs:
         run: |
           # Download dataset
           wget -q https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/ShareGPT_V3_unfiltered_cleaned_split.json
-          vllm bench serve --backend vllm --model meta-llama/Llama-3.1-8B-Instruct --endpoint /v1/completions --dataset-name sharegpt --dataset-path ${GITHUB_WORKSPACE}/ShareGPT_V3_unfiltered_cleaned_split.json --num-prompts 10
+          vllm bench serve \
+            --backend vllm \
+            --model meta-llama/Llama-3.1-8B-Instruct \
+            --endpoint /v1/completions \
+            --dataset-name sharegpt \
+            --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json \
+            --num-prompts 10 \
+            2>&1 | tee benchmark_results.log
 
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vllm-logs-${{ github.run_number }}
+          path: |
+            vllm_server.log
+            benchmark_results.log
