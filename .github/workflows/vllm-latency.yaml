@@ -26,6 +26,7 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Serve model
+        shell: bash
         run: |
           vllm serve meta-llama/Llama-3.1-8B-Instruct | tee 2>&1 vllm_server.log &
           VLLM_PID=$!
