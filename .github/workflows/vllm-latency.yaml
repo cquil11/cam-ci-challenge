@@ -25,6 +25,9 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
+      - name: Install script requirements
+        run: pip install -r ${GITHUB_WORKSPACE}/.github/scripts/requirements.txt
+
       - name: Run latency benchmark
         shell: bash
         run: |
@@ -35,9 +38,14 @@ jobs:
               --batch-size ${batch_size} \
               --input-len 512 \
               --output-len 128 \
-              --output-json latency_batch_bs${batch_size}.json \
-              2>&1 | tee latency_batch_bs${batch_size}.log
+              --output-json latency_bs${batch_size}.json \
+              2>&1 | tee latency_bs${batch_size}.log
           done
+
+      - name: Generate summary page
+        run: |
+          python3 ${GITHUB_WORKSPACE}/.github/scripts/latency_to_table.py --base-filename latency_bs --output-dir ${GITHUB_WORKSPACE}
+          cat ${GITHUB_WORKSPACE}/table_markdown.md >> $GITHUB_STEP_SUMMARY
 
       - name: Upload results
         uses: actions/upload-artifact@v4
