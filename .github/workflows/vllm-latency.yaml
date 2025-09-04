@@ -56,6 +56,10 @@ jobs:
           git config --global --add safe.directory ${GITHUB_WORKSPACE}
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
+
+          # Pull latest changes first to avoid conflicts as safeguard
+          git pull origin ${{ github.ref_name }} || true
+
           git add benchmark_history/
           git add data.json
           git commit -m "Add benchmark data for $(date -u)" || exit 0
