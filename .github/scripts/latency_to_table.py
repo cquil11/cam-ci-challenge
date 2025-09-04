@@ -4,7 +4,7 @@ import glob
 import os
 import re
 
-from py_markdown_table.markdown_table import markdown_table
+from tabulate import tabulate
 
 def main():
    parser = argparse.ArgumentParser()
@@ -39,7 +39,7 @@ def main():
            combined_data.append(data_pt)
 
    combined_data.sort(key=lambda x: x['batch_size'] or 0)
-   markdown = markdown_table(combined_data).get_markdown()
+   markdown = tabulate(combined_data, headers="keys", tablefmt="pipe")
 
    output_path = os.path.join(args.output_dir, 'table_markdown.md')
    with open(output_path, 'w') as f:
