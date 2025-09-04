@@ -48,12 +48,16 @@ jobs:
           python3 ${GITHUB_WORKSPACE}/.github/scripts/latency_to_table.py --base-filename latency_bs --output-dir ${GITHUB_WORKSPACE}
           cat ${GITHUB_WORKSPACE}/table_markdown.md >> $GITHUB_STEP_SUMMARY
 
-      - name: Commit benchmark history
+      - name: Merge all benchmark data
+        run: python3 ${GITHUB_WORKSPACE}/.github/scripts/merge_data_points.py
+
+      - name: Commit data point
         run: |
           git config --global --add safe.directory ${GITHUB_WORKSPACE}
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
           git add benchmark_history/
+          git add data.json
           git commit -m "Add benchmark data for $(date -u)" || exit 0
           git push
 
