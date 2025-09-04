@@ -51,6 +51,11 @@ jobs:
       - name: Merge all benchmark data
         run: python3 ${GITHUB_WORKSPACE}/.github/scripts/merge_data_points.py
 
+        # idk why this problem exists
+        # solution is here: https://stackoverflow.com/questions/72978485/git-submodule-update-failed-with-fatal-detected-dubious-ownership-in-reposit
+      - name: Configure Git safe directory
+        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+
       - name: Commit data point
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
