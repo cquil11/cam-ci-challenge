@@ -27,5 +27,6 @@ jobs:
       # Runs a single command using the runners shell
       - name: Test GPU
         run: |
+          ls -la /vllm-workspace
           pwd
           nvidia-smi
