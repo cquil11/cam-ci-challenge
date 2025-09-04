@@ -26,7 +26,20 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Serve model
-        run: vllm serve meta-llama/Llama-3.1-8B-Instruct
+        run: |
+          vllm serve meta-llama/Llama-3.1-8B-Instruct | tee 2>&1 vllm_server.log &
+
+          echo "Waiting for vLLM server to start..."
+          for i in {1..60}; do
+            if curl -f http://localhost:8000/v1/models &>/dev/null; then
+              echo "Server is ready!"
+              break
+            fi
+            echo "Attempt $i: Server not ready yet, waiting 5 seconds..."
+            sleep 5
+          done
+          
+          curl http://localhost:8000/v1/models
 
       - name: Run basic benchmark
         run: |
