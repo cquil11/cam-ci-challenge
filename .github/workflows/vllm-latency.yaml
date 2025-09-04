@@ -47,6 +47,7 @@ jobs:
       #     curl http://localhost:8000/v1/models
 
       - name: Run latency benchmark
+        shell: bash
         run: |
           for batch_size in {1..8}; do
             vllm bench latency \
