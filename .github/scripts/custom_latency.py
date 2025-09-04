@@ -136,6 +136,11 @@ def benchmark_batch_size(llm, args: argparse.Namespace, batch_size: int) -> dict
     latencies = np.array(latencies)
     percentages = [10, 25, 50, 75, 90, 99]
     percentiles = np.percentile(latencies, percentages)
+    
+    print(f"Batch size: {batch_size}")
+    print(f"Avg latency: {np.mean(latencies)} seconds")
+    for percentage, percentile in zip(percentages, percentiles):
+        print(f"{percentage}% percentile latency: {percentile} seconds")
 
     return {
         "avg_latency": np.mean(latencies),
