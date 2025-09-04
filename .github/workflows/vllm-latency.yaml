@@ -34,7 +34,7 @@ jobs:
           python3 ${GITHUB_WORKSPACE}/.github/scripts/custom_latency.py \
             --model meta-llama/Llama-3.1-8B-Instruct \
             --bs-start 1 \
-            --bs-end 8 \
+            --bs-end 1 \
             --bs-step 1 \
             --input-len 512 \
             --output-len 128 \
@@ -45,6 +45,14 @@ jobs:
         run: |
           python3 ${GITHUB_WORKSPACE}/.github/scripts/latency_to_table.py --base-filename latency_bs --output-dir ${GITHUB_WORKSPACE}
           cat ${GITHUB_WORKSPACE}/table_markdown.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Commit benchmark history
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add benchmark_history/
+          git commit -m "Add benchmark data for $(date -u)" || exit 0
+          git push
 
       - name: Upload results
         uses: actions/upload-artifact@v4
