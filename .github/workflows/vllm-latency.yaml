@@ -28,9 +28,12 @@ jobs:
       - name: Serve model
         run: |
           vllm serve meta-llama/Llama-3.1-8B-Instruct | tee 2>&1 vllm_server.log &
-
+          VLLM_PID=$!
+          
+          echo "Started vLLM server with PID: $VLLM_PID"
           echo "Waiting for vLLM server to start..."
-          for i in {1..60}; do
+          
+          for i in $(seq 1 60); do
             if curl -sf http://localhost:8000/v1/models; then
               echo "Server is ready!"
               break
