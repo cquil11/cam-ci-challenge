@@ -25,8 +25,12 @@ jobs:
       - uses: actions/checkout@v4
 
       # Runs a single command using the runners shell
-      - name: Test GPU
+      - name: Serve model
+        run: vllm serve meta-llama/Llama-3.1-8B-Instruct
+
+      - name: Run basic benchmark
         run: |
-          ls -la /vllm-workspace
-          pwd
-          nvidia-smi
+          # Download dataset
+          wget https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/ShareGPT_V3_unfiltered_cleaned_split.json
+          vllm bench serve --backend vllm --model meta-llama/Llama-3.1-8B-Instruct --endpoint /v1/completions --dataset-name sharegpt --dataset-path ${GITHUB_WORKSPACE}/ShareGPT_V3_unfiltered_cleaned_split.json --num-prompts 10
+
