@@ -51,18 +51,25 @@ jobs:
       - name: Merge all benchmark data
         run: python3 ${GITHUB_WORKSPACE}/.github/scripts/merge_data_points.py
 
-        # idk why this problem exists
-        # solution is here: https://stackoverflow.com/questions/72978485/git-submodule-update-failed-with-fatal-detected-dubious-ownership-in-reposit
+
       - name: Configure Git safe directory
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
 
       - name: Commit data point
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "Add benchmark data for $(date -u)"
-          file_pattern: 'benchmark_history/ data.json'
-          commit_user_name: 'GitHub Action'
-          commit_user_email: 'action@github.com'
+        run: |
+          # idk why this problem exists
+          # solution is here: https://stackoverflow.com/questions/72978485/git-submodule-update-failed-with-fatal-detected-dubious-ownership-in-reposit
+          git config --global --add safe.directory ${GITHUB_WORKSPACE}
+          git config --global user.name 'GitHub Action'
+          git config --global user.email 'action@github.com'
+
+          # Pull latest changes first to avoid conflicts as safeguard
+          git pull origin ${{ github.ref_name }}
+
+          git add benchmark_history/
+          git add data.json
+          git commit -m "Add benchmark data for $(date -u)" || exit 0
+          git push
 
       - name: Upload results
         uses: actions/upload-artifact@v4
