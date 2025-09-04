@@ -15,8 +15,8 @@
 <body>
     <div id="root"></div>
     <script type="text/babel">
-        import React, { useState, useEffect } from 'react';
-        import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+        const { useState, useEffect } = React;
+        const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = Recharts;
 
         const PerformanceMetricsDashboard = () => {
             const [data, setData] = useState([]);
@@ -75,9 +75,29 @@
 
                     const jsonData = await response.json();
 
-                    // Handle both single entry and array of entries
-                    const entries = Array.isArray(jsonData) ? jsonData : [jsonData];
-                    const processedData = processJsonData(entries);
+                    // REQUIRE that jsonData is an array
+                    if (!Array.isArray(jsonData)) {
+                        throw new Error('data.json must contain an array of timestamp entries');
+                    }
+
+                    if (jsonData.length === 0) {
+                        throw new Error('data.json must contain at least one timestamp entry');
+                    }
+
+                    // Validate each entry has required structure
+                    jsonData.forEach((entry, index) => {
+                        if (!entry.timestamp) {
+                            throw new Error(`Entry ${index} missing required 'timestamp' field`);
+                        }
+                        if (!entry.results || !Array.isArray(entry.results)) {
+                            throw new Error(`Entry ${index} missing required 'results' array`);
+                        }
+                        if (entry.results.length === 0) {
+                            throw new Error(`Entry ${index} has empty 'results' array`);
+                        }
+                    });
+
+                    const processedData = processJsonData(jsonData);
 
                     setData(processedData);
                     initializeBatchSizes(processedData);
@@ -230,32 +250,32 @@
                                     <p className="mb-2"><strong>Expected file:</strong> <code>./data.json</code></p>
                                     <p className="mb-2"><strong>Format:</strong> Must be an array of 1+ entries</p>
                                     <pre className="bg-gray-100 p-2 rounded text-xs overflow-x-auto">
-                                        {`[
-                                            {
-                                                "timestamp": "2025-09-04T21:42:01.659813+00:00",
-                                                "results": [
-                                                {
-                                                    "batch_size": 1,
-                                                    "avg_latency": 1.369,
-                                                    "p50": 1.364,
-                                                    "p90": 1.377,
-                                                    "p99": 1.393
-                                                }
-                                                ]
-                                            },
-                                            {
-                                                "timestamp": "2025-09-04T21:43:01.659813+00:00",
-                                                "results": [
-                                                {
-                                                    "batch_size": 2,
-                                                    "avg_latency": 1.420,
-                                                    "p50": 1.415,
-                                                    "p90": 1.435,
-                                                    "p99": 1.450
-                                                }
-                                                ]
-                                            }
-                                        ]`}
+{`[
+  {
+    "timestamp": "2025-09-04T21:42:01.659813+00:00",
+    "results": [
+      {
+        "batch_size": 1,
+        "avg_latency": 1.369,
+        "p50": 1.364,
+        "p90": 1.377,
+        "p99": 1.393
+      }
+    ]
+  },
+  {
+    "timestamp": "2025-09-04T21:43:01.659813+00:00",
+    "results": [
+      {
+        "batch_size": 2,
+        "avg_latency": 1.420,
+        "p50": 1.415,
+        "p90": 1.435,
+        "p99": 1.450
+      }
+    ]
+  }
+]`}
                                     </pre>
                                 </div>
                             </div>
@@ -362,8 +382,6 @@
                 </div>
             );
         };
-
-        export default PerformanceMetricsDashboard;
 
         ReactDOM.render(<PerformanceMetricsDashboard />, document.getElementById('root'));
     </script>
