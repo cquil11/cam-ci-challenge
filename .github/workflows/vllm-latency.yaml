@@ -8,6 +8,16 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: self-hosted
+    # https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/run-jobs-in-a-container
+    container:
+      image: vllm/vllm-openai:v0.10.1.1
+      options: >-
+        --gpus all
+        --ipc=host
+        -v /home/ubuntu/.cache/huggingface:/root/.cache/huggingface
+        --entrypoint /bin/bash
+      env:
+        HUGGING_FACE_HUB_TOKEN: ${{ secrets.HF_TOKEN }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
