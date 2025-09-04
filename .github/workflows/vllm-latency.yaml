@@ -1,14 +1,14 @@
 name: vLLM Latency
 
 on:
+  schedule:
+    - cron: '0 * * * *' # top of each hour
   workflow_dispatch:
 permissions:
   contents: write
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   benchmark-latency:
-    # The type of runner that the job will run on
     runs-on: self-hosted
     # https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/run-jobs-in-a-container
     container:
@@ -22,9 +22,7 @@ jobs:
         HUGGING_FACE_HUB_TOKEN: ${{ secrets.HF_TOKEN }}
         HF_HOME: /home/ubuntu/.cache/huggingface
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
       - name: Install script requirements
