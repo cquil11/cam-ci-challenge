@@ -56,7 +56,9 @@ def main():
         'results': combined_data
     }
 
-    output_path = os.path.join(args.output_dir, 'benchmark_history', f'data_point_{timestamp_str}.json')
+    output_dir_path = os.path.join(args.output_dir, 'benchmark_history')
+    os.makedirs(output_dir_path, exist_ok=True)
+    output_path = os.path.join(output_dir_path, f'data_point_{timestamp_str}.json')
     with open(output_path, 'w') as f:
         json.dump(data_point, f)
 
