@@ -25,45 +25,43 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      # Runs a single command using the runners shell
-      - name: Serve model
-        shell: bash
+      # # Runs a single command using the runners shell
+      # - name: Serve model
+      #   shell: bash
+      #   run: |
+      #     vllm serve meta-llama/Llama-3.1-8B-Instruct > vllm_server.log 2>&1 &
+      #     VLLM_PID=$!
+          
+      #     echo "Started vLLM server with PID: $VLLM_PID"
+      #     echo "Waiting for vLLM server to start..."
+          
+      #     for i in $(seq 1 60); do
+      #       if curl -sf http://localhost:8000/v1/models; then
+      #         echo "Server is ready!"
+      #         break
+      #       fi
+      #       echo "Attempt $i: Server not ready yet, waiting 5 seconds..."
+      #       sleep 5
+      #     done
+          
+      #     curl http://localhost:8000/v1/models
+
+      - name: Run latency benchmark
         run: |
-          vllm serve meta-llama/Llama-3.1-8B-Instruct > vllm_server.log 2>&1 &
-          VLLM_PID=$!
-          
-          echo "Started vLLM server with PID: $VLLM_PID"
-          echo "Waiting for vLLM server to start..."
-          
-          for i in $(seq 1 60); do
-            if curl -sf http://localhost:8000/v1/models; then
-              echo "Server is ready!"
-              break
-            fi
-            echo "Attempt $i: Server not ready yet, waiting 5 seconds..."
-            sleep 5
+          for batch_size in {1..8}; do
+            vllm bench latency \
+              --model meta-llama/Llama-3.1-8B-Instruct \
+              --batch-size ${batch_size} \
+              --input-len 512 \
+              --output-len 128 \
+              --output-json latency_batch_bs${batch_size}.json
           done
-          
-          curl http://localhost:8000/v1/models
 
-      - name: Run basic benchmark
-        run: |
-          # Download dataset
-          wget -q https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/ShareGPT_V3_unfiltered_cleaned_split.json
-          vllm bench serve \
-            --backend vllm \
-            --model meta-llama/Llama-3.1-8B-Instruct \
-            --endpoint /v1/completions \
-            --dataset-name sharegpt \
-            --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json \
-            --num-prompts 10 \
-            2>&1 | tee benchmark_results.log
-
-      - name: Upload logs
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: vllm-logs-${{ github.run_number }}
-          path: |
-            vllm_server.log
-            benchmark_results.log
+      # - name: Upload logs
+      #   uses: actions/upload-artifact@v4
+      #   if: always()
+      #   with:
+      #     name: vllm-logs-${{ github.run_number }}
+      #     path: |
+      #       vllm_server.log
+      #       benchmark_results.log
