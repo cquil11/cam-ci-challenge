@@ -31,7 +31,7 @@ jobs:
       - name: Run latency benchmark
         shell: bash
         run: |
-          for batch_size in {1..8}; do
+          for batch_size in {8..8}; do
             echo "Running batch size $batch_size..."
             vllm bench latency \
               --model meta-llama/Llama-3.1-8B-Instruct \
