@@ -35,9 +35,9 @@ jobs:
         run: |
           python3 ${GITHUB_WORKSPACE}/.github/scripts/custom_latency.py \
             --model meta-llama/Llama-3.1-8B-Instruct \
-            --bs-start 1 \
-            --bs-end 1 \
-            --bs-step 1 \
+            --bs-start 4 \
+            --bs-end 8 \
+            --bs-step 2 \
             --input-len 512 \
             --output-len 128 \
             --output-json latency_bs \
