@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# This is a simple modification of https://github.com/vllm-project/vllm/blob/main/vllm/benchmarks/latency.py
+
 import argparse
 import dataclasses
 import json
