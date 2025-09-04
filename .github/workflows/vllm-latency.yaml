@@ -5,7 +5,7 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  build:
+  benchmark-latency:
     # The type of runner that the job will run on
     runs-on: self-hosted
     # https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/run-jobs-in-a-container
@@ -26,4 +26,6 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Test GPU
-        run: nvidia-smi
+        run: |
+          pwd
+          nvidia-smi
