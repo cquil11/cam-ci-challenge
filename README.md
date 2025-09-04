@@ -26,3 +26,4 @@
 - Originally I was using `vllm bench latency` which invokes https://github.com/vllm-project/vllm/blob/main/vllm/benchmarks/latency.py, the only annoying part about this is it has to spin up an entirely new engine for each batch size which almost doubles the time of the benchmark
   - Just made simple changes in `.github/scripts/custom_latency.py` that spins up one engine and then runs each batch size sequentially (this could of course be generalized for other parameters)
   - Allows to run the original script with `--bs-start`, `--bs-end`, and `--bs-step` which specify the start, end, and step batch sizes, respectively
+- `data.json` is acting as our DB, probably not ideal to use GH for this, but for this challenge it serves its purpose

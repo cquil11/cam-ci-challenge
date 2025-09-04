@@ -33,6 +33,7 @@ jobs:
       - name: Run latency benchmark
         shell: bash
         run: |
+          exit 1
           python3 ${GITHUB_WORKSPACE}/.github/scripts/custom_latency.py \
             --model meta-llama/Llama-3.1-8B-Instruct \
             --bs-start 4 \
@@ -63,9 +64,6 @@ jobs:
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
 
-          # Pull latest changes first to avoid conflicts as safeguard
-          git pull origin ${{ github.ref_name }}
-
           git add benchmark_history/
           git add data.json
           git commit -m "Add benchmark data for $(date -u)" || exit 0
@@ -80,12 +78,12 @@ jobs:
             *.json
             *.log
 
-      # - name: Notify Slack on failure
-      #   if: failure()
-      #   uses: 8398a7/action-slack@v3
-      #   with:
-      #     status: failure
-      #     channel: '#your-channel-name'
-      #     text: 'Benchmark workflow failed'
-      #   env:
-      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Notify Slack on failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#your-channel-name'
+          text: 'Benchmark workflow failed'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
