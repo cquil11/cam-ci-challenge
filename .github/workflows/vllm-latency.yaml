@@ -29,7 +29,7 @@ jobs:
       - name: Serve model
         shell: bash
         run: |
-          vllm serve meta-llama/Llama-3.1-8B-Instruct 2>&1 | tee vllm_server.log &
+          vllm serve meta-llama/Llama-3.1-8B-Instruct > vllm_server.log 2>&1 &
           VLLM_PID=$!
           
           echo "Started vLLM server with PID: $VLLM_PID"
