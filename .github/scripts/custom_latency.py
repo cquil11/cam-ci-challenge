@@ -16,6 +16,7 @@ from vllm.benchmarks.lib.utils import (convert_to_pytorch_benchmark_format,
 from vllm.engine.arg_utils import EngineArgs
 from vllm.inputs import PromptType
 from vllm.sampling_params import BeamSearchParams
+from vllm import LLM, SamplingParams
 
 
 def save_to_pytorch_benchmark_format(args: argparse.Namespace,
@@ -157,8 +158,6 @@ def main(args: argparse.Namespace):
     batch_sizes = list(range(args.bs_start, args.bs_end + 1, args.bs_step))
     
     engine_args = EngineArgs.from_cli_args(args)
-
-    from vllm import LLM, SamplingParams
 
     llm = LLM(**dataclasses.asdict(engine_args))
     assert llm.llm_engine.model_config.max_model_len >= (
