@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Latency Metrics Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f9fafb;
+            color: #374151;
+            line-height: 1.6;
+        }
+
+        .nav-bar {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .nav-brand {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #111827;
+            text-decoration: none;
+            padding: 16px 0;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0;
+        }
+
+        .nav-link {
+            padding: 16px 24px;
+            color: #6b7280;
+            text-decoration: none;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            color: #374151;
+            background-color: #f9fafb;
+        }
+
+        .nav-link.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+            background-color: #eff6ff;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .title {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #111827;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #2563eb;
+            font-size: 14px;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #2563eb;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .last-updated {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .refresh-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .refresh-btn:hover:not(:disabled) {
+            background: #1d4ed8;
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+
+        .error-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 16px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+
+        .config-controls {
+            background: #eff6ff;
+            padding: 32px;
+            border-radius: 12px;
+            border: 4px solid #60a5fa;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .config-controls-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #111827;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .config-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .config-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 32px;
+            border: 2px solid;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .config-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .config-btn.active {
+            border-color: #3b82f6;
+            background: white;
+        }
+
+        .config-btn.inactive {
+            border-color: #d1d5db;
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .config-color {
+            width: 24px;
+            height: 16px;
+            border-radius: 4px;
+            border: 2px solid;
+        }
+
+        .config-status {
+            font-size: 1.2rem;
+        }
+
+        .info-box {
+            background: #dbeafe;
+            padding: 16px 24px;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .info-text {
+            color: #1e40af;
+            font-weight: 600;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 24px;
+        }
+
+        .loading-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 73px);
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .loading-screen .spinner {
+            width: 48px;
+            height: 48px;
+            border-width: 4px;
+        }
+
+        .loading-screen h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .loading-screen p {
+            color: #6b7280;
+        }
+
+        .error-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 73px);
+            flex-direction: column;
+            text-align: center;
+            padding: 24px;
+        }
+
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+        }
+
+        .error-screen h2 {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #dc2626;
+            margin-bottom: 16px;
+        }
+
+        .error-details {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: left;
+            max-width: 500px;
+            margin-bottom: 24px;
+        }
+
+        .error-details strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .error-details pre {
+            background: #f3f4f6;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            overflow-x: auto;
+            margin-top: 12px;
+        }
+
+        .retry-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .retry-btn:hover {
+            background: #1d4ed8;
+        }
+
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 16px 24px;
+            }
+
+            .nav-links {
+                justify-content: center;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .controls {
+                justify-content: center;
+            }
+
+            .config-buttons {
+                gap: 12px;
+            }
+
+            .config-btn {
+                padding: 12px 16px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">Performance Dashboard</a>
+            <div class="nav-links">
+                <a href="latency.html" class="nav-link active">Latency Metrics</a>
+                <a href="benchmarks.html" class="nav-link">vLLM Benchmarks</a>
+            </div>
+        </div>
+    </nav>
+
+    <div id="app">
+        <div class="loading-screen">
+            <div class="spinner"></div>
+            <h2>Loading Performance Data...</h2>
+            <p>Fetching data from fake_db/data.json</p>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let data = [];
+        let visibleBatchSizes = {};
+        let availableBatchSizes = [];
+        let isLoading = true;
+        let error = null;
+        let lastUpdated = null;
+        let charts = {};
+
+        // Colors for batch sizes
+        const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#8dd1e1', '#d084d0', '#ffb347', '#87ceeb'];
+
+        function getColorForBatchSize(batchSize, index) {
+            return colors[index % colors.length];
+        }
+
+        // Process JSON data
+        function processJsonData(jsonEntries) {
+            const processedData = [];
+
+            jsonEntries.forEach(entry => {
+                const timestamp = entry.timestamp;
+                entry.results.forEach(result => {
+                    processedData.push({
+                        timestamp,
+                        batch_size: result.batch_size,
+                        avg_latency: result.avg_latency,
+                        p50: result.p50,
+                        p90: result.p90,
+                        p99: result.p99
+                    });
+                });
+            });
+
+            return processedData;
+        }
+
+        // Initialize batch sizes
+        function initializeBatchSizes(processedData) {
+            availableBatchSizes = [...new Set(processedData.map(d => d.batch_size))].sort((a, b) => a - b);
+
+            // Set all batch sizes as visible by default
+            visibleBatchSizes = {};
+            availableBatchSizes.forEach(size => {
+                visibleBatchSizes[size] = true;
+            });
+        }
+
+        // Fetch data from JSON
+        async function fetchData() {
+            try {
+                isLoading = true;
+                error = null;
+                render();
+
+                const response = await fetch('./fake_db/data.json');
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch fake_db/data.json: ${response.status} ${response.statusText}`);
+                }
+
+                const jsonData = await response.json();
+
+                // Validate data format
+                if (!Array.isArray(jsonData)) {
+                    throw new Error('fake_db/data.json must contain an array of timestamp entries');
+                }
+
+                if (jsonData.length === 0) {
+                    throw new Error('fake_db/data.json must contain at least one timestamp entry');
+                }
+
+                jsonData.forEach((entry, index) => {
+                    if (!entry.timestamp) {
+                        throw new Error(`Entry ${index} missing required 'timestamp' field`);
+                    }
+                    if (!entry.results || !Array.isArray(entry.results)) {
+                        throw new Error(`Entry ${index} missing required 'results' array`);
+                    }
+                    if (entry.results.length === 0) {
+                        throw new Error(`Entry ${index} has empty 'results' array`);
+                    }
+                });
+
+                const processedData = processJsonData(jsonData);
+                data = processedData;
+                initializeBatchSizes(processedData);
+                lastUpdated = new Date().toLocaleString();
+
+            } catch (err) {
+                console.error('Error fetching data:', err);
+                error = err.message;
+            } finally {
+                isLoading = false;
+                render();
+            }
+        }
+
+        // Transform data for charts
+        function transformDataForMetric(metric) {
+            const timePoints = [...new Set(data.map(d => d.timestamp))].sort();
+
+            return timePoints.map(timestamp => {
+                const point = { timestamp };
+                const batchData = data.filter(d => d.timestamp === timestamp);
+
+                batchData.forEach(d => {
+                    point[`batch_${d.batch_size}`] = d[metric];
+                });
+
+                point.time = new Date(timestamp).toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                return point;
+            });
+        }
+
+        // Create chart
+        function createChart(canvasId, title, metric) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+
+            // Destroy existing chart if it exists
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+
+            const chartData = transformDataForMetric(metric);
+            const labels = chartData.map(d => d.time);
+
+            const datasets = availableBatchSizes.map((batchSize, index) => ({
+                label: `Batch Size ${batchSize}`,
+                data: chartData.map(d => d[`batch_${batchSize}`]),
+                borderColor: getColorForBatchSize(batchSize, index),
+                backgroundColor: getColorForBatchSize(batchSize, index) + '20',
+                borderWidth: 2,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                fill: false,
+                hidden: !visibleBatchSizes[batchSize]
+            }));
+
+            charts[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: false
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Latency (s)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        }
+
+        // Toggle batch size visibility
+        function toggleBatchSize(batchSize) {
+            visibleBatchSizes[batchSize] = !visibleBatchSizes[batchSize];
+
+            // Update all charts
+            Object.keys(charts).forEach(chartId => {
+                const chart = charts[chartId];
+                const datasetIndex = availableBatchSizes.indexOf(batchSize);
+                if (datasetIndex !== -1) {
+                    chart.setDatasetVisibility(datasetIndex, visibleBatchSizes[batchSize]);
+                    chart.update();
+                }
+            });
+
+            // Update button appearance
+            updateBatchButtons();
+        }
+
+        // Update batch buttons
+        function updateBatchButtons() {
+            availableBatchSizes.forEach((batchSize, index) => {
+                const btn = document.getElementById(`batch-btn-${batchSize}`);
+                const colorDiv = document.getElementById(`batch-color-${batchSize}`);
+                const status = document.getElementById(`batch-status-${batchSize}`);
+
+                if (btn) {
+                    const isVisible = visibleBatchSizes[batchSize];
+                    btn.className = `config-btn ${isVisible ? 'active' : 'inactive'}`;
+
+                    if (colorDiv) {
+                        colorDiv.style.backgroundColor = isVisible ? getColorForBatchSize(batchSize, index) : '#ccc';
+                        colorDiv.style.borderColor = isVisible ? getColorForBatchSize(batchSize, index) : '#999';
+                    }
+
+                    if (status) {
+                        status.textContent = isVisible ? '✓' : '✗';
+                        status.style.color = isVisible ? '#059669' : '#dc2626';
+                    }
+                }
+            });
+        }
+
+        // Render the app
+        function render() {
+            const app = document.getElementById('app');
+
+            if (isLoading && data.length === 0) {
+                app.innerHTML = `
+                    <div class="loading-screen">
+                        <div class="spinner"></div>
+                        <h2>Loading Performance Data...</h2>
+                        <p>Fetching data from fake_db/data.json</p>
+                    </div>
+                `;
+                return;
+            }
+
+            if (error && data.length === 0) {
+                app.innerHTML = `
+                    <div class="error-screen">
+                        <div class="error-icon">⚠️</div>
+                        <h2>Cannot Load Data</h2>
+                        <div class="error-details">
+                            <strong>Error:</strong> ${error}
+                            <p><strong>Expected file:</strong> <code>./fake_db/data.json</code></p>
+                            <p><strong>Format:</strong> Must be an array of 1+ entries</p>
+                            <pre>[
+  {
+    "timestamp": "2025-09-04T21:42:01.659813+00:00",
+    "results": [
+      {
+        "batch_size": 1,
+        "avg_latency": 1.369,
+        "p50": 1.364,
+        "p90": 1.377,
+        "p99": 1.393
+      }
+    ]
+  }
+]</pre>
+                        </div>
+                        <button class="retry-btn" onclick="fetchData()">Retry Loading</button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Main dashboard
+            app.innerHTML = `
+                <div class="container">
+                    <div class="header">
+                        <h1 class="title">Latency Metrics Dashboard</h1>
+                        <div class="controls">
+                            ${isLoading ? `
+                                <div class="loading">
+                                    <div class="spinner"></div>
+                                    <span>Refreshing...</span>
+                                </div>
+                            ` : ''}
+                            ${lastUpdated ? `<div class="last-updated">Last updated: ${lastUpdated}</div>` : ''}
+                            <button class="refresh-btn" onclick="fetchData()" ${isLoading ? 'disabled' : ''}>
+                                Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    ${error && data.length > 0 ? `
+                        <div class="error">
+                            <div class="error-title">⚠️ Refresh failed:</div>
+                            <p>${error}</p>
+                            <p><small>Showing last successfully loaded data.</small></p>
+                        </div>
+                    ` : ''}
+
+                    <div class="charts-grid">
+                        <div class="chart-container">
+                            <h3 class="chart-title">Average Latency</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="avg-latency-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <h3 class="chart-title">P50 Latency</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="p50-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <h3 class="chart-title">P90 Latency</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="p90-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <h3 class="chart-title">P99 Latency</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="p99-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-controls">
+                        <h2 class="config-controls-title">Batch Size Controls</h2>
+                        <div class="config-buttons">
+                            ${availableBatchSizes.map((batchSize, index) => `
+                                <button 
+                                    id="batch-btn-${batchSize}"
+                                    class="config-btn ${visibleBatchSizes[batchSize] ? 'active' : 'inactive'}"
+                                    onclick="toggleBatchSize(${batchSize})"
+                                >
+                                    <div 
+                                        id="batch-color-${batchSize}"
+                                        class="config-color"
+                                        style="
+                                            background-color: ${visibleBatchSizes[batchSize] ? getColorForBatchSize(batchSize, index) : '#ccc'};
+                                            border-color: ${visibleBatchSizes[batchSize] ? getColorForBatchSize(batchSize, index) : '#999'};
+                                        "
+                                    ></div>
+                                    <span>Batch Size ${batchSize}</span>
+                                    <span 
+                                        id="batch-status-${batchSize}"
+                                        class="config-status"
+                                        style="color: ${visibleBatchSizes[batchSize] ? '#059669' : '#dc2626'}"
+                                    >${visibleBatchSizes[batchSize] ? '✓' : '✗'}</span>
+                                </button>
+                            `).join('')}
+                        </div>
+                        <div class="info-box">
+                            <div class="info-text">
+                                Click buttons above to show/hide batch sizes • Charts auto-scale to visible data
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="footer">
+                        Data automatically refreshes every 30 seconds • ${data.length} data points loaded
+                    </div>
+                </div>
+            `;
+
+            // Create charts after DOM is updated
+            setTimeout(() => {
+                createChart('avg-latency-chart', 'Average Latency', 'avg_latency');
+                createChart('p50-chart', 'P50 Latency', 'p50');
+                createChart('p90-chart', 'P90 Latency', 'p90');
+                createChart('p99-chart', 'P99 Latency', 'p99');
+            }, 100);
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchData();
+
+            // Auto-refresh every 30 seconds
+            setInterval(fetchData, 30000);
+        });
+    </script>
+</body>
+
+</html>

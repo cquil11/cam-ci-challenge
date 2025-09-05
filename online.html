@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vLLM Benchmark Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f9fafb;
+            color: #374151;
+            line-height: 1.6;
+        }
+
+        .nav-bar {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .nav-brand {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #111827;
+            text-decoration: none;
+            padding: 16px 0;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0;
+        }
+
+        .nav-link {
+            padding: 16px 24px;
+            color: #6b7280;
+            text-decoration: none;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            color: #374151;
+            background-color: #f9fafb;
+        }
+
+        .nav-link.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+            background-color: #eff6ff;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .title {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #111827;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #2563eb;
+            font-size: 14px;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #2563eb;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .last-updated {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .refresh-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .refresh-btn:hover:not(:disabled) {
+            background: #1d4ed8;
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+
+        .error-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .config-controls {
+            background: #eff6ff;
+            padding: 32px;
+            border-radius: 12px;
+            border: 4px solid #60a5fa;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 32px;
+        }
+
+        .config-controls-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #111827;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .config-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .config-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            border: 2px solid;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .config-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .config-btn.active {
+            border-color: #3b82f6;
+            background: white;
+        }
+
+        .config-btn.inactive {
+            border-color: #d1d5db;
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .config-color {
+            width: 20px;
+            height: 12px;
+            border-radius: 3px;
+            border: 2px solid;
+        }
+
+        .config-status {
+            font-size: 1rem;
+        }
+
+        .metric-section {
+            background: white;
+            margin-bottom: 24px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .metric-header {
+            background: #f8fafc;
+            padding: 20px 24px;
+            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+
+        .metric-header:hover {
+            background: #f1f5f9;
+        }
+
+        .metric-header h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #111827;
+            margin: 0;
+        }
+
+        .toggle-icon {
+            font-size: 1.5rem;
+            color: #6b7280;
+            transition: transform 0.2s;
+        }
+
+        .metric-section.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .metric-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 24px;
+            padding: 24px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .metric-section.collapsed .metric-content {
+            max-height: 0;
+            padding: 0 24px;
+        }
+
+        .chart-container {
+            background: #fafbfc;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+
+        .info-box {
+            background: #dbeafe;
+            padding: 16px 24px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .info-text {
+            color: #1e40af;
+            font-weight: 600;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 24px;
+        }
+
+        .loading-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 73px);
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .loading-screen .spinner {
+            width: 48px;
+            height: 48px;
+            border-width: 4px;
+        }
+
+        .loading-screen h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .loading-screen p {
+            color: #6b7280;
+        }
+
+        .error-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 73px);
+            flex-direction: column;
+            text-align: center;
+            padding: 24px;
+        }
+
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+        }
+
+        .error-screen h2 {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #dc2626;
+            margin-bottom: 16px;
+        }
+
+        .error-details {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: left;
+            max-width: 600px;
+            margin-bottom: 24px;
+        }
+
+        .error-details strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .error-details pre {
+            background: #f3f4f6;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            overflow-x: auto;
+            margin-top: 12px;
+        }
+
+        .retry-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .retry-btn:hover {
+            background: #1d4ed8;
+        }
+
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 16px 24px;
+            }
+
+            .nav-links {
+                justify-content: center;
+            }
+
+            .metric-content {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .controls {
+                justify-content: center;
+            }
+
+            .config-buttons {
+                gap: 8px;
+            }
+
+            .config-btn {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">Performance Dashboard</a>
+            <div class="nav-links">
+                <a href="latency.html" class="nav-link">Latency Metrics</a>
+                <a href="benchmarks.html" class="nav-link active">vLLM Benchmarks</a>
+            </div>
+        </div>
+    </nav>
+
+    <div id="app">
+        <div class="loading-screen">
+            <div class="spinner"></div>
+            <h2>Loading vLLM Benchmark Data...</h2>
+            <p>Fetching data from fake_db/e2e_benchmark_data.json</p>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let data = {};
+        let visibleConfigs = {};
+        let availableConfigs = [];
+        let isLoading = true;
+        let error = null;
+        let lastUpdated = null;
+        let charts = {};
+        let collapsedSections = {
+            'throughput': false,
+            'ttft': false,
+            'tpot': false,
+            'itl': false
+        };
+
+        // Colors for configurations
+        const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#8dd1e1', '#d084d0', '#ffb347', '#87ceeb', '#90ee90', '#ffa07a'];
+
+        function getColorForConfig(configKey, index) {
+            return colors[index % colors.length];
+        }
+
+        // Process JSON data from the new format
+        function processJsonData(jsonData) {
+            // jsonData is already in the correct format: { "300_100": { "input_len": 300, ... }, ... }
+            return jsonData;
+        }
+
+        // Initialize configurations
+        function initializeConfigs(processedData) {
+            availableConfigs = Object.keys(processedData).sort((a, b) => {
+                const [aInput, aOutput] = a.split('_').map(Number);
+                const [bInput, bOutput] = b.split('_').map(Number);
+                const aTotal = aInput + aOutput;
+                const bTotal = bInput + bOutput;
+                return aTotal - bTotal;
+            });
+
+            // Set all configs as visible by default
+            visibleConfigs = {};
+            availableConfigs.forEach(config => {
+                visibleConfigs[config] = true;
+            });
+        }
+
+        // Fetch data from JSON
+        async function fetchData() {
+            try {
+                isLoading = true;
+                error = null;
+                render();
+
+                const response = await fetch('./fake_db/e2e_benchmark_data.json');
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch fake_db/e2e_benchmark_data.json: ${response.status} ${response.statusText}`);
+                }
+
+                const jsonData = await response.json();
+
+                // Validate data format
+                if (typeof jsonData !== 'object' || Array.isArray(jsonData)) {
+                    throw new Error('fake_db/e2e_benchmark_data.json must contain an object with configuration keys');
+                }
+
+                const configKeys = Object.keys(jsonData);
+                if (configKeys.length === 0) {
+                    throw new Error('fake_db/e2e_benchmark_data.json must contain at least one configuration');
+                }
+
+                configKeys.forEach((configKey) => {
+                    const config = jsonData[configKey];
+                    if (!config.history || !Array.isArray(config.history)) {
+                        throw new Error(`Configuration ${configKey} missing required 'history' array`);
+                    }
+                    if (config.history.length === 0) {
+                        throw new Error(`Configuration ${configKey} has empty 'history' array`);
+                    }
+                });
+
+                const processedData = processJsonData(jsonData);
+                data = processedData;
+                initializeConfigs(processedData);
+                lastUpdated = new Date().toLocaleString();
+
+            } catch (err) {
+                console.error('Error fetching data:', err);
+                error = err.message;
+            } finally {
+                isLoading = false;
+                render();
+            }
+        }
+
+        // Transform data for charts
+        function transformDataForMetric(metric) {
+            const allTimestamps = new Set();
+
+            // Collect all timestamps
+            Object.values(data).forEach(config => {
+                config.history.forEach(entry => {
+                    allTimestamps.add(entry.timestamp);
+                });
+            });
+
+            const timePoints = Array.from(allTimestamps).sort();
+
+            return timePoints.map(timestamp => {
+                const point = { timestamp };
+
+                Object.keys(data).forEach(configKey => {
+                    const config = data[configKey];
+                    const entry = config.history.find(h => h.timestamp === timestamp);
+                    if (entry && entry[metric] !== undefined) {
+                        point[configKey] = entry[metric];
+                    }
+                });
+
+                point.time = new Date(timestamp).toLocaleTimeString('en-US', {
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                return point;
+            });
+        }
+
+        // Create chart
+        function createChart(canvasId, title, metric) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+
+            // Destroy existing chart if it exists
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+
+            const chartData = transformDataForMetric(metric);
+            const labels = chartData.map(d => d.time);
+
+            const datasets = availableConfigs.map((configKey, index) => {
+                const config = data[configKey];
+                const label = `${config.input_len}+${config.output_len} tokens`;
+
+                return {
+                    label: label,
+                    data: chartData.map(d => d[configKey]),
+                    borderColor: getColorForConfig(configKey, index),
+                    backgroundColor: getColorForConfig(configKey, index) + '20',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    fill: false,
+                    hidden: !visibleConfigs[configKey]
+                };
+            });
+
+            charts[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: false
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: getYAxisLabel(metric)
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        }
+
+        function getYAxisLabel(metric) {
+            if (metric.includes('throughput')) return 'Tokens/Requests per Second';
+            if (metric.includes('ms')) return 'Milliseconds';
+            return 'Value';
+        }
+
+        // Toggle configuration visibility
+        function toggleConfig(configKey) {
+            visibleConfigs[configKey] = !visibleConfigs[configKey];
+
+            // Update all charts
+            Object.keys(charts).forEach(chartId => {
+                const chart = charts[chartId];
+                const datasetIndex = availableConfigs.indexOf(configKey);
+                if (datasetIndex !== -1) {
+                    chart.setDatasetVisibility(datasetIndex, visibleConfigs[configKey]);
+                    chart.update();
+                }
+            });
+
+            // Update button appearance
+            updateConfigButtons();
+        }
+
+        // Update configuration buttons
+        function updateConfigButtons() {
+            availableConfigs.forEach((configKey, index) => {
+                const btn = document.getElementById(`config-btn-${configKey}`);
+                const colorDiv = document.getElementById(`config-color-${configKey}`);
+                const status = document.getElementById(`config-status-${configKey}`);
+
+                if (btn) {
+                    const isVisible = visibleConfigs[configKey];
+                    btn.className = `config-btn ${isVisible ? 'active' : 'inactive'}`;
+
+                    if (colorDiv) {
+                        colorDiv.style.backgroundColor = isVisible ? getColorForConfig(configKey, index) : '#ccc';
+                        colorDiv.style.borderColor = isVisible ? getColorForConfig(configKey, index) : '#999';
+                    }
+
+                    if (status) {
+                        status.textContent = isVisible ? '✓' : '✗';
+                        status.style.color = isVisible ? '#059669' : '#dc2626';
+                    }
+                }
+            });
+        }
+
+        // Toggle section collapse
+        function toggleSection(sectionName) {
+            collapsedSections[sectionName] = !collapsedSections[sectionName];
+            const section = document.getElementById(`${sectionName}-section`);
+            if (section) {
+                if (collapsedSections[sectionName]) {
+                    section.classList.add('collapsed');
+                } else {
+                    section.classList.remove('collapsed');
+                    // Recreate charts when expanding
+                    setTimeout(() => {
+                        createSectionCharts(sectionName);
+                    }, 300);
+                }
+            }
+        }
+
+        // Create charts for a specific section
+        function createSectionCharts(sectionName) {
+            const metrics = getMetricsForSection(sectionName);
+            metrics.forEach(({ key, title }) => {
+                createChart(`${sectionName}-${key}-chart`, title, key);
+            });
+        }
+
+        // Get metrics for each section
+        function getMetricsForSection(sectionName) {
+            const metricGroups = {
+                'throughput': [
+                    { key: 'total_token_throughput', title: 'Total Token Throughput' },
+                    { key: 'request_throughput', title: 'Request Throughput' },
+                    { key: 'output_throughput', title: 'Output Token Throughput' }
+                ],
+                'ttft': [
+                    { key: 'mean_ttft_ms', title: 'Mean TTFT' },
+                    { key: 'median_ttft_ms', title: 'Median TTFT' },
+                    { key: 'p90_ttft_ms', title: 'P90 TTFT' },
+                    { key: 'p99_ttft_ms', title: 'P99 TTFT' }
+                ],
+                'tpot': [
+                    { key: 'mean_tpot_ms', title: 'Mean TPOT' },
+                    { key: 'median_tpot_ms', title: 'Median TPOT' },
+                    { key: 'p90_tpot_ms', title: 'P90 TPOT' },
+                    { key: 'p99_tpot_ms', title: 'P99 TPOT' }
+                ],
+                'itl': [
+                    { key: 'mean_itl_ms', title: 'Mean ITL' },
+                    { key: 'median_itl_ms', title: 'Median ITL' },
+                    { key: 'p90_itl_ms', title: 'P90 ITL' },
+                    { key: 'p99_itl_ms', title: 'P99 ITL' }
+                ]
+            };
+            return metricGroups[sectionName] || [];
+        }
+
+        // Create metric section HTML
+        function createMetricSection(sectionName, sectionTitle) {
+            const metrics = getMetricsForSection(sectionName);
+            const isCollapsed = collapsedSections[sectionName];
+
+            return `
+                <div class="metric-section ${isCollapsed ? 'collapsed' : ''}" id="${sectionName}-section">
+                    <div class="metric-header" onclick="toggleSection('${sectionName}')">
+                        <h3>${sectionTitle}</h3>
+                        <span class="toggle-icon">▼</span>
+                    </div>
+                    <div class="metric-content">
+                        ${metrics.map(({ key, title }) => `
+                            <div class="chart-container">
+                                <h4 class="chart-title">${title}</h4>
+                                <div class="chart-wrapper">
+                                    <canvas id="${sectionName}-${key}-chart"></canvas>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render the app
+        function render() {
+            const app = document.getElementById('app');
+
+            if (isLoading && Object.keys(data).length === 0) {
+                app.innerHTML = `
+                    <div class="loading-screen">
+                        <div class="spinner"></div>
+                        <h2>Loading vLLM Benchmark Data...</h2>
+                        <p>Fetching data from fake_db/e2e_benchmark_data.json</p>
+                    </div>
+                `;
+                return;
+            }
+
+            if (error && Object.keys(data).length === 0) {
+                app.innerHTML = `
+                    <div class="error-screen">
+                        <div class="error-icon">⚠️</div>
+                        <h2>Cannot Load Data</h2>
+                        <div class="error-details">
+                            <strong>Error:</strong> ${error}
+                            <p><strong>Expected file:</strong> <code>./fake_db/e2e_benchmark_data.json</code></p>
+                            <p><strong>Format:</strong> Object with configuration keys</p>
+                            <pre>{
+  "300_100": {
+    "input_len": 300,
+    "output_len": 100,
+    "total_tokens": 400,
+    "history": [
+      {
+        "timestamp": "2025-09-05T16:16:44.682776Z",
+        "total_token_throughput": 4910.79,
+        "mean_ttft_ms": 37.93,
+        "mean_tpot_ms": 12.28,
+        ...
+      }
+    ]
+  }
+}</pre>
+                        </div>
+                        <button class="retry-btn" onclick="fetchData()">Retry Loading</button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Main dashboard
+            app.innerHTML = `
+                <div class="container">
+                    <div class="header">
+                        <h1 class="title">vLLM Benchmark Dashboard</h1>
+                        <div class="controls">
+                            ${isLoading ? `
+                                <div class="loading">
+                                    <div class="spinner"></div>
+                                    <span>Refreshing...</span>
+                                </div>
+                            ` : ''}
+                            ${lastUpdated ? `<div class="last-updated">Last updated: ${lastUpdated}</div>` : ''}
+                            <button class="refresh-btn" onclick="fetchData()" ${isLoading ? 'disabled' : ''}>
+                                Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    ${error && Object.keys(data).length > 0 ? `
+                        <div class="error">
+                            <div class="error-title">⚠️ Refresh failed:</div>
+                            <p>${error}</p>
+                            <p><small>Showing last successfully loaded data.</small></p>
+                        </div>
+                    ` : ''}
+
+                    <div class="config-controls">
+                        <h2 class="config-controls-title">Input/Output Configuration Controls</h2>
+                        <div class="config-buttons">
+                            ${availableConfigs.map((configKey, index) => {
+                const config = data[configKey];
+                return `
+                                    <button 
+                                        id="config-btn-${configKey}"
+                                        class="config-btn ${visibleConfigs[configKey] ? 'active' : 'inactive'}"
+                                        onclick="toggleConfig('${configKey}')"
+                                    >
+                                        <div 
+                                            id="config-color-${configKey}"
+                                            class="config-color"
+                                            style="
+                                                background-color: ${visibleConfigs[configKey] ? getColorForConfig(configKey, index) : '#ccc'};
+                                                border-color: ${visibleConfigs[configKey] ? getColorForConfig(configKey, index) : '#999'};
+                                            "
+                                        ></div>
+                                        <span>${config.input_len}+${config.output_len} tokens</span>
+                                        <span 
+                                            id="config-status-${configKey}"
+                                            class="config-status"
+                                            style="color: ${visibleConfigs[configKey] ? '#059669' : '#dc2626'}"
+                                        >${visibleConfigs[configKey] ? '✓' : '✗'}</span>
+                                    </button>
+                                `;
+            }).join('')}
+                        </div>
+                        <div class="info-box">
+                            <div class="info-text">
+                                Click buttons above to show/hide configurations • Charts auto-scale to visible data
+                            </div>
+                        </div>
+                    </div>
+
+                    ${createMetricSection('throughput', 'Throughput Metrics')}
+                    ${createMetricSection('ttft', 'Time to First Token (TTFT) Metrics')}
+                    ${createMetricSection('tpot', 'Time per Output Token (TPOT) Metrics')}
+                    ${createMetricSection('itl', 'Inter-Token Latency (ITL) Metrics')}
+
+                    <div class="footer">
+                        Data automatically refreshes every 30 seconds • ${Object.keys(data).length} configurations loaded
+                    </div>
+                </div>
+            `;
+
+            // Create charts after DOM is updated
+            setTimeout(() => {
+                Object.keys(collapsedSections).forEach(sectionName => {
+                    if (!collapsedSections[sectionName]) {
+                        createSectionCharts(sectionName);
+                    }
+                });
+            }, 100);
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchData();
+
+            // Auto-refresh every 30 seconds
+            setInterval(fetchData, 30000);
+        });
+    </script>
+</body>
+
+</html>
