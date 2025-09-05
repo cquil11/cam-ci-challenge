@@ -769,6 +769,91 @@
             });
         }
 
+        // Create cost efficiency scatter plot
+        function createCostEfficiencyScatterPlot() {
+            const canvas = document.getElementById('cost-efficiency-scatter-chart');
+            if (!canvas || !concurrencyData || concurrencyData.length === 0) return;
+
+            const ctx = canvas.getContext('2d');
+
+            if (charts['cost-efficiency-scatter-chart']) {
+                charts['cost-efficiency-scatter-chart'].destroy();
+            }
+
+            // Data mapping: x = total_token_throughput, y = cost_per_million_toks
+            const plotData = concurrencyData.map(point => ({
+                x: point.total_token_throughput,
+                y: point.cost_per_million_toks
+            }));
+
+            charts['cost-efficiency-scatter-chart'] = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Cost Efficiency Trade-off',
+                        data: plotData,
+                        backgroundColor: '#10b981',
+                        borderColor: '#047857',
+                        pointRadius: 8,
+                        pointHoverRadius: 12
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Total Token Throughput (tok/s)',
+                                color: '#374151',
+                                font: {
+                                    size: 14,
+                                    weight: '600'
+                                }
+                            },
+                            ticks: {
+                                color: '#6b7280',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            grid: {
+                                color: '#000000',
+                                lineWidth: 1
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Cost per Million Tokens ($)',
+                                color: '#374151',
+                                font: {
+                                    size: 14,
+                                    weight: '600'
+                                }
+                            },
+                            ticks: {
+                                color: '#6b7280',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            grid: {
+                                color: '#000000',
+                                lineWidth: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
         function getYAxisLabel(metric) {
             if (metric.includes('throughput')) return 'Tokens/Requests per Second';
             if (metric.includes('ms')) return 'Milliseconds';
@@ -779,9 +864,9 @@
         function toggleConfig(configKey) {
             visibleConfigs[configKey] = !visibleConfigs[configKey];
 
-            // Update all charts (skip concurrency chart)
+            // Update all charts (skip scatter plots)
             Object.keys(charts).forEach(chartId => {
-                if (chartId === 'concurrency-scatter-chart') return; // Skip scatter plot
+                if (chartId === 'concurrency-scatter-chart' || chartId === 'cost-efficiency-scatter-chart') return; // Skip scatter plots
                 const chart = charts[chartId];
                 const datasetIndex = availableConfigs.indexOf(configKey);
                 if (datasetIndex !== -1) {
@@ -831,6 +916,7 @@
                     setTimeout(() => {
                         if (sectionName === 'concurrency') {
                             createConcurrencyScatterPlot();
+                            createCostEfficiencyScatterPlot();
                         } else {
                             createSectionCharts(sectionName);
                         }
@@ -920,6 +1006,15 @@
                             </div>
                             <p style="text-align: center; margin-top: 16px; color: #6b7280; font-size: 14px;">
                                 Each point represents a different concurrency level. Higher concurrency increases total throughput but reduces per-user interactivity.
+                            </p>
+                        </div>
+                        <div class="chart-container concurrency-chart">
+                            <h4 class="chart-title">Throughput vs Cost Efficiency Trade-off</h4>
+                            <div class="chart-wrapper">
+                                <canvas id="cost-efficiency-scatter-chart"></canvas>
+                            </div>
+                            <p style="text-align: center; margin-top: 16px; color: #6b7280; font-size: 14px;">
+                                Each point represents a different concurrency level. Higher throughput typically reduces cost per token due to better resource utilization.
                             </p>
                         </div>
                     </div>
@@ -1043,9 +1138,10 @@
 
             // Create charts after DOM is updated
             setTimeout(() => {
-                // Create concurrency scatter plot if data is available
+                // Create concurrency scatter plots if data is available
                 if (concurrencyData.length > 0 && !collapsedSections['concurrency']) {
                     createConcurrencyScatterPlot();
+                    createCostEfficiencyScatterPlot();
                 }
 
                 // Create time-series charts if data is available
