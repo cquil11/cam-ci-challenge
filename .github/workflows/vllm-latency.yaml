@@ -58,11 +58,11 @@ jobs:
             # Let's assume a single H100 is capable of approx. 5k tps throughput
             # under reasonable latency for Llama 3.1 8B Instruct
             # Therefore we can calculate request rate roughly by 5000 / (input_len + output_len)
-            request_rate=$(echo "scale=2; 5000 / ($input_len + $output_len)" | bc)
+            request_rate=$(python3 -c "print(round(5000 / ($input_len + $output_len), 2))")
             # Now assume we want each benchmark to run for roughly 3 minutes, so we calculate
             # the number of total requests to be approx.  60 * 3 * request_rate
             run_duration_mins=3
-            number_requests=$(echo "3 * 60 * $request_rate" | bc | xargs printf "%.0f")
+            number_requests=$(python3 -c "import math; print(round(3 * 60 * $request_rate))")
             
             echo "Running benchmark: ${input_len} input, ${output_len} output, ${request_rate} RPS, ${number_requests} total requests"
             
