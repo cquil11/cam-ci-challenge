@@ -83,8 +83,6 @@ jobs:
               --metric-percentiles 25,50,75,90,99,99.9
           done
 
-      - name: pip install tabulate
-        run: pip install tabulate
       - name: Parse results and generate summary
         shell: bash
         run: | #python
@@ -103,10 +101,24 @@ jobs:
                   with open(file, 'r') as f:
                       data = json.load(f)
                   
-                  data['input_len'] = int(match.group(1))
-                  data['output_len'] = int(match.group(2))
-                  data['total_tokens'] = data['input_len'] + data['output_len']
-                  results.append(data)
+                  # Remove unwanted columns these just cause noise
+                  unwanted = ['date', 'endpoint_type', 'label', 'tokenizer_id', 'burstiness', 'request_goodput']
+                  for key in unwanted:
+                      data.pop(key, None)
+                  
+                  # Create ordered dict with input/output first as these are the identifying factors between runs
+                  ordered_data = {
+                      'input_len': int(match.group(1)),
+                      'output_len': int(match.group(2)),
+                      'total_tokens': int(match.group(1)) + int(match.group(2))
+                  }
+                  
+                  # Add all other data
+                  for key, value in data.items():
+                      if key not in ['input_len', 'output_len', 'total_tokens']:
+                          ordered_data[key] = value
+                  
+                  results.append(ordered_data)
 
           table = tabulate(results, headers="keys", tablefmt="github", floatfmt=".2f")
 
@@ -119,6 +131,7 @@ jobs:
           
           print(table)
           EOF
+
       - name: Upload logs
         uses: actions/upload-artifact@v4
         if: always()
@@ -127,11 +140,6 @@ jobs:
           path: |
             *.log
             *.json      
-
-      # - name: Generate summary page
-      #   run: |
-      #     python3 ${GITHUB_WORKSPACE}/.github/scripts/latency_to_table.py --base-filename latency_bs --output-dir ${GITHUB_WORKSPACE}
-      #     cat ${GITHUB_WORKSPACE}/table_markdown.md >> $GITHUB_STEP_SUMMARY
 
       # - name: Merge all benchmark data
       #   run: python3 ${GITHUB_WORKSPACE}/.github/scripts/merge_data_points.py
