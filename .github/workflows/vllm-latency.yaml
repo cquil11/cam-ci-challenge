@@ -86,7 +86,7 @@ jobs:
       - name: pip install tabulate
         run: pip install tabulate
       - name: Parse results and generate summary
-        shell: python
+        shell: python3
         run: | #python 
           import json
           import glob
