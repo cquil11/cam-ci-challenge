@@ -46,7 +46,7 @@ jobs:
           
           curl http://localhost:8000/v1/models
 
-      - name: Run basic benchmark
+      - name: Run benchmark with varying concurrency
         shell: bash
         run: | # shell
           for max_concurrency in 1 2 4 8 16 32; do
@@ -70,10 +70,10 @@ jobs:
               --metric-percentiles 25,75,90,99,99.9
           done
 
-      # - name: Parse results and generate summary
-      #   run: |
-      #     pip install -r ${GITHUB_WORKSPACE}/.github/scripts/requirements.txt
-      #     python3 ${GITHUB_WORKSPACE}/.github/scripts/e2e_benchmark_postprocess.py
+      - name: Parse results and generate summary
+        run: |
+          pip install -r ${GITHUB_WORKSPACE}/.github/scripts/requirements.txt
+          python3 ${GITHUB_WORKSPACE}/.github/scripts/max_concurrency_benchmark_postprocess.py
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -84,20 +84,20 @@ jobs:
             *.log
             *.json      
 
-      # - name: Configure Git safe directory
-      #   run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+      - name: Configure Git safe directory
+        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
 
-      # - name: Commit data point
-      #   run: | # shell
-      #     # idk why this problem exists
-      #     # solution is here: https://stackoverflow.com/questions/72978485/git-submodule-update-failed-with-fatal-detected-dubious-ownership-in-reposit
-      #     git config --global --add safe.directory ${GITHUB_WORKSPACE}
-      #     git config --global user.name 'GitHub Action'
-      #     git config --global user.email 'action@github.com'
+      - name: Commit data point
+        run: | # shell
+          # idk why this problem exists
+          # solution is here: https://stackoverflow.com/questions/72978485/git-submodule-update-failed-with-fatal-detected-dubious-ownership-in-reposit
+          git config --global --add safe.directory ${GITHUB_WORKSPACE}
+          git config --global user.name 'GitHub Action'
+          git config --global user.email 'action@github.com'
 
-      #     git add fake_db/e2e_benchmark_data.json
-      #     git commit -m "Add benchmark data for $(date -u)" || exit 0
-      #     git push
+          git add fake_db/max_concurrency_benchmark_data.json
+          git commit -m "Add benchmark data for $(date -u)" || exit 0
+          git push
 
   notify-on-failure:
     runs-on: ubuntu-latest
