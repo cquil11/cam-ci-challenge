@@ -40,7 +40,7 @@ jobs:
               echo "Server is ready!"
               break
             fi
-            echo "Waited $(((i - 1) ** 5)) seconds for server to start..."
+            echo "Waited $(((i - 1) * 5)) seconds for server to start..."
             sleep 5
           done
           
@@ -49,7 +49,7 @@ jobs:
       - name: Run basic benchmark
         shell: bash
         run: | # shell
-          for max_concurrency in 1 2 4 8; do
+          for max_concurrency in 1 2 4 8 16 32; do
             input_len=1000
             output_len=200
             number_requests=$((max_concurrency * 10))
