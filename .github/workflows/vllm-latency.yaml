@@ -190,34 +190,20 @@ jobs:
             *.log
             *.json      
 
-      # - name: Merge all benchmark data
-      #   run: python3 ${GITHUB_WORKSPACE}/.github/scripts/merge_data_points.py
+      - name: Configure Git safe directory
+        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
 
+      - name: Commit data point
+        run: |
+          # idk why this problem exists
+          # solution is here: https://stackoverflow.com/questions/72978485/git-submodule-update-failed-with-fatal-detected-dubious-ownership-in-reposit
+          git config --global --add safe.directory ${GITHUB_WORKSPACE}
+          git config --global user.name 'GitHub Action'
+          git config --global user.email 'action@github.com'
 
-      # - name: Configure Git safe directory
-      #   run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
-
-      # - name: Commit data point
-      #   run: |
-      #     # idk why this problem exists
-      #     # solution is here: https://stackoverflow.com/questions/72978485/git-submodule-update-failed-with-fatal-detected-dubious-ownership-in-reposit
-      #     git config --global --add safe.directory ${GITHUB_WORKSPACE}
-      #     git config --global user.name 'GitHub Action'
-      #     git config --global user.email 'action@github.com'
-
-      #     git add benchmark_history/
-      #     git add data.json
-      #     git commit -m "Add benchmark data for $(date -u)" || exit 0
-      #     git push
-
-      # - name: Upload results
-      #   uses: actions/upload-artifact@v4
-      #   if: always()
-      #   with:
-      #     name: latency-results-${{ github.run_number }}
-      #     path: |
-      #       *.json
-      #       *.log
+          git add data.json
+          git commit -m "Add benchmark data for $(date -u)" || exit 0
+          git push
 
       # - name: Notify Slack on failure
       #   if: failure()
