@@ -25,62 +25,109 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install script requirements
-        run: pip install -r ${GITHUB_WORKSPACE}/.github/scripts/requirements.txt
-
-      - name: Run latency benchmark
+      - name: Serve model
         shell: bash
-        run: |
-          python3 ${GITHUB_WORKSPACE}/.github/scripts/custom_latency.py \
-            --model meta-llama/Llama-3.1-8B-Instruct \
-            --bs-start 1 \
-            --bs-end 8 \
-            --bs-step 1 \
-            --input-len 512 \
-            --output-len 128 \
-            --output-json latency_bs \
-            2>&1 | tee benchmark.log
+        run: | # shell
+          vllm serve meta-llama/Llama-3.1-8B-Instruct > vllm_server.log 2>&1 &
+          VLLM_PID=$!
+          
+          echo "Started vLLM server with PID: $VLLM_PID"
+          echo "Waiting for vLLM server to start..."
+          
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8000/v1/models; then
+              echo "Server is ready!"
+              break
+            fi
+            echo "Attempt $i: Server not ready yet, waiting 5 seconds..."
+            sleep 5
+          done
+          
+          curl http://localhost:8000/v1/models
 
-      - name: Generate summary page
-        run: |
-          python3 ${GITHUB_WORKSPACE}/.github/scripts/latency_to_table.py --base-filename latency_bs --output-dir ${GITHUB_WORKSPACE}
-          cat ${GITHUB_WORKSPACE}/table_markdown.md >> $GITHUB_STEP_SUMMARY
+      - name: Run basic benchmark
+        shell: bash
+        run: | # shell
+          # Define input/output length pairs
+          input_lens=(300 500 800 1000 2000)
+          output_lens=(100 200 300 200 400)
 
-      - name: Merge all benchmark data
-        run: python3 ${GITHUB_WORKSPACE}/.github/scripts/merge_data_points.py
+          for i in "${!input_lens[@]}"; do
+            input_len=${input_lens[$i]}
+            output_len=${output_lens[$i]}
+            # Let's assume a single H100 is capable of approx. 5k tps throughput
+            # under reasonable latency for Llama 3.1 8B Instruct
+            # Therefore we can calculate request rate roughly by 5000 / (input_len + output_len)
+            request_rate=$((5000 / (input_len + output_len)))
+            # Now assume we want each benchmark to run for roughly 3 minutes, so we calculate
+            # the number of total requests to be approx.  60 * 3 * request_rate
+            run_duration_mins=3
+            number_requests=$((3 * 60 * request_rate))
+            
+            echo "Running benchmark: ${input_len} input, ${output_len} output, ${request_rate} RPS"
+            
+            vllm bench serve \
+              --backend vllm \
+              --model meta-llama/Llama-3.1-8B-Instruct \
+              --endpoint /v1/completions \
+              --dataset-name random \
+              --random-input-len ${input_len} \
+              --random-output-len ${output_len} \
+              --num-prompts ${number_requests} \
+              --request-rate ${request_rate} \
+              --save-result \
+              --metric-percentiles 25,50,75,90,99,99.9
+          done
 
-
-      - name: Configure Git safe directory
-        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
-
-      - name: Commit data point
-        run: |
-          # idk why this problem exists
-          # solution is here: https://stackoverflow.com/questions/72978485/git-submodule-update-failed-with-fatal-detected-dubious-ownership-in-reposit
-          git config --global --add safe.directory ${GITHUB_WORKSPACE}
-          git config --global user.name 'GitHub Action'
-          git config --global user.email 'action@github.com'
-
-          git add benchmark_history/
-          git add data.json
-          git commit -m "Add benchmark data for $(date -u)" || exit 0
-          git push
-
-      - name: Upload results
+      - name: Upload logs
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: latency-results-${{ github.run_number }}
+          name: vllm-logs-${{ github.run_number }}
           path: |
-            *.json
             *.log
+            *.json      
 
-      - name: Notify Slack on failure
-        if: failure()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: failure
-          channel: '#ext-cameron-semianalysis'
-          text: 'Benchmark workflow failed'
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      # - name: Generate summary page
+      #   run: |
+      #     python3 ${GITHUB_WORKSPACE}/.github/scripts/latency_to_table.py --base-filename latency_bs --output-dir ${GITHUB_WORKSPACE}
+      #     cat ${GITHUB_WORKSPACE}/table_markdown.md >> $GITHUB_STEP_SUMMARY
+
+      # - name: Merge all benchmark data
+      #   run: python3 ${GITHUB_WORKSPACE}/.github/scripts/merge_data_points.py
+
+
+      # - name: Configure Git safe directory
+      #   run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+
+      # - name: Commit data point
+      #   run: |
+      #     # idk why this problem exists
+      #     # solution is here: https://stackoverflow.com/questions/72978485/git-submodule-update-failed-with-fatal-detected-dubious-ownership-in-reposit
+      #     git config --global --add safe.directory ${GITHUB_WORKSPACE}
+      #     git config --global user.name 'GitHub Action'
+      #     git config --global user.email 'action@github.com'
+
+      #     git add benchmark_history/
+      #     git add data.json
+      #     git commit -m "Add benchmark data for $(date -u)" || exit 0
+      #     git push
+
+      # - name: Upload results
+      #   uses: actions/upload-artifact@v4
+      #   if: always()
+      #   with:
+      #     name: latency-results-${{ github.run_number }}
+      #     path: |
+      #       *.json
+      #       *.log
+
+      # - name: Notify Slack on failure
+      #   if: failure()
+      #   uses: 8398a7/action-slack@v3
+      #   with:
+      #     status: failure
+      #     channel: '#ext-cameron-semianalysis'
+      #     text: 'Benchmark workflow failed'
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
