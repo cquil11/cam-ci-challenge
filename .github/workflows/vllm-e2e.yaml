@@ -76,17 +76,7 @@ jobs:
           path: |
             *.json
             *.log
-
-      - name: Notify Slack on failure
-        if: failure()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: failure
-          channel: '#ext-cameron-semianalysis'
-          text: 'Benchmark workflow failed'
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          
+            
   benchmark-online:
     runs-on: self-hosted
     needs: benchmark-latency
