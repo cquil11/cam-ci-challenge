@@ -1,8 +1,8 @@
 name: vLLM E2E Benchmark
 
 on:
-  schedule:
-    - cron: '0 * * * *' # top of each hour
+  # schedule:
+  #   - cron: '0 * * * *' # top of each hour
   workflow_dispatch:
 permissions:
   contents: write
@@ -76,7 +76,7 @@ jobs:
           path: |
             *.json
             *.log
-            
+
   benchmark-online:
     runs-on: self-hosted
     needs: benchmark-latency
