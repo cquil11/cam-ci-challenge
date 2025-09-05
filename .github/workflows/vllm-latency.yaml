@@ -87,6 +87,7 @@ jobs:
           
   benchmark-online:
     runs-on: self-hosted
+    needs: benchmark-latency
     container:
       image: vllm/vllm-openai:v0.10.1.1
       options: >-
@@ -175,7 +176,7 @@ jobs:
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
 
       - name: Commit data point
-        run: |
+        run: | # shell
           # idk why this problem exists
           # solution is here: https://stackoverflow.com/questions/72978485/git-submodule-update-failed-with-fatal-detected-dubious-ownership-in-reposit
           git config --global --add safe.directory ${GITHUB_WORKSPACE}
@@ -186,12 +187,16 @@ jobs:
           git commit -m "Add benchmark data for $(date -u)" || exit 0
           git push
 
-      # - name: Notify Slack on failure
-      #   if: failure()
-      #   uses: 8398a7/action-slack@v3
-      #   with:
-      #     status: failure
-      #     channel: '#ext-cameron-semianalysis'
-      #     text: 'Benchmark workflow failed'
-      #   env:
-      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  notify-on-failure:
+    runs-on: ubuntu-latest
+    needs: [benchmark-latency, benchmark-online]
+    if: failure()  # Only runs if any previous job failed (i.e., the workflow)
+    steps:
+      - name: Notify Slack on workflow failure
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#ext-cameron-semianalysis'
+          text: 'vLLM Benchmark workflow failed'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
