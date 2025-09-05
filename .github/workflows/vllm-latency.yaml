@@ -76,6 +76,7 @@ jobs:
               --num-prompts ${number_requests} \
               --request-rate ${request_rate} \
               --save-result \
+              --disable-tqdm \
               --metric-percentiles 25,50,75,90,99,99.9
           done
 
