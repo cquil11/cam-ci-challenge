@@ -24,6 +24,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
 
       - name: Install script requirements
         run: pip install -r ${GITHUB_WORKSPACE}/.github/scripts/requirements.txt
@@ -101,6 +103,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
 
       - name: Serve model
         shell: bash
