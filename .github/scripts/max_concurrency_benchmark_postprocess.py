@@ -7,6 +7,9 @@ from datetime import datetime
 GITHUB_WORKSPACE_ENV = os.getenv('GITHUB_WORKSPACE')
 DATA_FILENAME = "max_concurrency_benchmark_data.json"
 
+H100_PCIE_PRICE_PER_HOUR = 2
+
+
 current_time = datetime.utcnow().isoformat() + 'Z'
 
 results = []
@@ -31,7 +34,8 @@ for file in sorted(glob.glob("concurrency_*.json")):
             'total_token_throughput': total_throughput,
             'tokens_per_sec_user': tokens_per_sec_user,
             'mean_tpot_ms': mean_tpot_ms,
-            'mean_ttft_ms': data.get('mean_ttft_ms')
+            'mean_ttft_ms': data.get('mean_ttft_ms'),
+            'cost_per_million_toks': (H100_PCIE_PRICE_PER_HOUR * 1,000,000) / (total_throughput * 60 * 60)
         }
         
         results.append(result_point)
