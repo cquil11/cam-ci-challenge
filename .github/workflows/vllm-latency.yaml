@@ -86,8 +86,10 @@ jobs:
       - name: pip install tabulate
         run: pip install tabulate
       - name: Parse results and generate summary
-        shell: python3
-        run: | #python 
+        shell: bash
+        run: | #python
+          pip install tabulate
+          python3 << 'EOF'
           import json
           import glob
           import re
@@ -107,7 +109,7 @@ jobs:
                   results.append(data)
 
           table = tabulate(results, headers="keys", tablefmt="github", floatfmt=".2f")
-        
+
           summary_path = os.environ.get('GITHUB_STEP_SUMMARY')
           if summary_path:
               with open(summary_path, 'a') as f:
@@ -116,8 +118,7 @@ jobs:
                   f.write("\n")
           
           print(table)
-
-
+          EOF
       - name: Upload logs
         uses: actions/upload-artifact@v4
         if: always()
