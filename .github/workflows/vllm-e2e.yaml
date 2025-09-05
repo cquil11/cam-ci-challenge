@@ -1,85 +1,15 @@
 name: vLLM E2E Benchmark
 
 on:
-  schedule:
-    - cron: '0 * * * *' # top of each hour
+  # schedule:
+  #   - cron: '0 * * * *' # top of each hour
   workflow_dispatch:
 permissions:
   contents: write
 
-jobs:
-  benchmark-latency:
-    runs-on: self-hosted
-    # https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/run-jobs-in-a-container
-    container:
-      image: vllm/vllm-openai:v0.10.1.1
-      options: >-
-        --gpus all
-        --ipc=host
-        -v /home/ubuntu/.cache/huggingface:/home/ubuntu/.cache/huggingface
-        --entrypoint /bin/bash
-      env:
-        HUGGING_FACE_HUB_TOKEN: ${{ secrets.HF_TOKEN }}
-        HF_HOME: /home/ubuntu/.cache/huggingface
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
-
-      - name: Install script requirements
-        run: pip install -r ${GITHUB_WORKSPACE}/.github/scripts/requirements.txt
-
-      - name: Run latency benchmark
-        shell: bash
-        run: | #shell
-          python3 ${GITHUB_WORKSPACE}/.github/scripts/custom_latency.py \
-            --model meta-llama/Llama-3.1-8B-Instruct \
-            --bs-start 1 \
-            --bs-end 8 \
-            --bs-step 1 \
-            --input-len 512 \
-            --output-len 128 \
-            --output-json latency_bs \
-            2>&1 | tee benchmark.log
-
-      - name: Generate summary page
-        run: | #shell
-          python3 ${GITHUB_WORKSPACE}/.github/scripts/latency_to_table.py --base-filename latency_bs --output-dir ${GITHUB_WORKSPACE}
-          cat ${GITHUB_WORKSPACE}/table_markdown.md >> $GITHUB_STEP_SUMMARY
-
-      - name: Merge all benchmark data
-        run: python3 ${GITHUB_WORKSPACE}/.github/scripts/merge_data_points.py
-
-
-      - name: Configure Git safe directory
-        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
-
-      - name: Commit data point
-        run: | #shell
-          # idk why this problem exists
-          # solution is here: https://stackoverflow.com/questions/72978485/git-submodule-update-failed-with-fatal-detected-dubious-ownership-in-reposit
-          git config --global --add safe.directory ${GITHUB_WORKSPACE}
-          git config --global user.name 'GitHub Action'
-          git config --global user.email 'action@github.com'
-
-          git add benchmark_history/
-          git add data.json
-          git commit -m "Add benchmark data for $(date -u)" || exit 0
-          git push
-
-      - name: Upload results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: latency-benchmark-results-${{ github.run_number }}
-          path: |
-            *.json
-            *.log
-            
+jobs:       
   benchmark-online:
     runs-on: self-hosted
-    needs: benchmark-latency
     container:
       image: vllm/vllm-openai:v0.10.1.1
       options: >-
@@ -103,14 +33,14 @@ jobs:
           VLLM_PID=$!
           
           echo "Started vLLM server with PID: $VLLM_PID"
-          echo "Waiting for vLLM server to start..."
+          echo "Waiting 300 seconds for vLLM server to start..."
           
           for i in $(seq 1 60); do
             if curl -sf http://localhost:8000/v1/models; then
               echo "Server is ready!"
               break
             fi
-            echo "Attempt $i: Server not ready yet, waiting 5 seconds..."
+            echo "Waited $(((i - 1) ** 5)) seconds for server to start..."
             sleep 5
           done
           
@@ -119,23 +49,12 @@ jobs:
       - name: Run basic benchmark
         shell: bash
         run: | # shell
-          # Define input/output length pairs
-          input_lens=(300 500 800 1000 2000)
-          output_lens=(100 200 300 200 400)
-
-          for i in "${!input_lens[@]}"; do
-            input_len=${input_lens[$i]}
-            output_len=${output_lens[$i]}
-            # Let's assume a single H100 is capable of approx. 5k tps throughput
-            # under reasonable latency for Llama 3.1 8B Instruct
-            # Therefore we can calculate request rate roughly by 5000 / (input_len + output_len)
-            request_rate=$(python3 -c "print(round(5000 / ($input_len + $output_len), 2))")
-            # Now assume we want each benchmark to run for roughly 3 minutes, so we calculate
-            # the number of total requests to be approx.  60 * 3 * request_rate
-            run_duration_mins=3
-            number_requests=$(python3 -c "import math; print(round(3 * 60 * $request_rate))")
+          for max_concurrency in 1 2 4 8; do
+            input_len=1000
+            output_len=200
+            number_requests=$((max_concurrency * 10))
             
-            echo "Running benchmark: ${input_len} input, ${output_len} output, ${request_rate} RPS, ${number_requests} total requests"
+            echo "Running benchmark: ${input_len} input, ${output_len} output, ${max_concurrency} max concurrency, ${number_requests} total requests"
             
             vllm bench serve \
               --backend vllm \
@@ -145,17 +64,16 @@ jobs:
               --random-input-len ${input_len} \
               --random-output-len ${output_len} \
               --num-prompts ${number_requests} \
-              --request-rate ${request_rate} \
+              --max-concurrency ${max_concurrency} \
               --save-result \
-              --disable-tqdm \
-              --result-filename "in_${input_len}_out_${output_len}.json" \
-              --metric-percentiles 25,50,75,90,99,99.9
+              --result-filename "concurrency_${max_concurrency}_in_${input_len}_out_${output_len}.json" \
+              --metric-percentiles 25,75,90,99,99.9
           done
 
-      - name: Parse results and generate summary
-        run: |
-          pip install -r ${GITHUB_WORKSPACE}/.github/scripts/requirements.txt
-          python3 ${GITHUB_WORKSPACE}/.github/scripts/e2e_benchmark_postprocess.py
+      # - name: Parse results and generate summary
+      #   run: |
+      #     pip install -r ${GITHUB_WORKSPACE}/.github/scripts/requirements.txt
+      #     python3 ${GITHUB_WORKSPACE}/.github/scripts/e2e_benchmark_postprocess.py
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -166,24 +84,24 @@ jobs:
             *.log
             *.json      
 
-      - name: Configure Git safe directory
-        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+      # - name: Configure Git safe directory
+      #   run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
 
-      - name: Commit data point
-        run: | # shell
-          # idk why this problem exists
-          # solution is here: https://stackoverflow.com/questions/72978485/git-submodule-update-failed-with-fatal-detected-dubious-ownership-in-reposit
-          git config --global --add safe.directory ${GITHUB_WORKSPACE}
-          git config --global user.name 'GitHub Action'
-          git config --global user.email 'action@github.com'
+      # - name: Commit data point
+      #   run: | # shell
+      #     # idk why this problem exists
+      #     # solution is here: https://stackoverflow.com/questions/72978485/git-submodule-update-failed-with-fatal-detected-dubious-ownership-in-reposit
+      #     git config --global --add safe.directory ${GITHUB_WORKSPACE}
+      #     git config --global user.name 'GitHub Action'
+      #     git config --global user.email 'action@github.com'
 
-          git add fake_db/e2e_benchmark_data.json
-          git commit -m "Add benchmark data for $(date -u)" || exit 0
-          git push
+      #     git add fake_db/e2e_benchmark_data.json
+      #     git commit -m "Add benchmark data for $(date -u)" || exit 0
+      #     git push
 
   notify-on-failure:
     runs-on: ubuntu-latest
-    needs: [benchmark-latency, benchmark-online]
+    needs: [benchmark-online]
     if: failure()  # Only runs if any previous job failed (i.e., the workflow)
     steps:
       - name: Notify Slack on workflow failure
