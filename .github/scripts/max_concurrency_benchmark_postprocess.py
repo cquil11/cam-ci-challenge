@@ -35,7 +35,7 @@ for file in sorted(glob.glob("concurrency_*.json")):
             'tokens_per_sec_user': tokens_per_sec_user,
             'mean_tpot_ms': mean_tpot_ms,
             'mean_ttft_ms': data.get('mean_ttft_ms'),
-            'cost_per_million_toks': (H100_PCIE_PRICE_PER_HOUR * 1,000,000) / (total_throughput * 60 * 60)
+            'cost_per_million_toks': (H100_PCIE_PRICE_PER_HOUR * 1_000_000) / (total_throughput * 60 * 60)
         }
         
         results.append(result_point)
