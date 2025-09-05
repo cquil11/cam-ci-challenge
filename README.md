@@ -1,4 +1,4 @@
-## Setup
+## Initial Setup
 
 1. Create runner on ubuntu@209.20.158.80 following the standard instructions on gh settings page
 2. Manually test `vllm/vllm-openai:v0.10.1.1` by pulling and then 
@@ -27,3 +27,7 @@
   - Just made simple changes in `.github/scripts/custom_latency.py` that spins up one engine and then runs each batch size sequentially (this could of course be generalized for other parameters)
   - Allows to run the original script with `--bs-start`, `--bs-end`, and `--bs-step` which specify the start, end, and step batch sizes, respectively
 - `data.json` is acting as our DB, probably not ideal to use GH for this, but for this challenge it serves its purpose
+- I completely LLMd the GH pages stuff
+
+## General Architecture / Workflow
+
