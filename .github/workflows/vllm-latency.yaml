@@ -25,6 +25,82 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install script requirements
+        run: pip install -r ${GITHUB_WORKSPACE}/.github/scripts/requirements.txt
+
+      - name: Run latency benchmark
+        shell: bash
+        run: | #shell
+          python3 ${GITHUB_WORKSPACE}/.github/scripts/custom_latency.py \
+            --model meta-llama/Llama-3.1-8B-Instruct \
+            --bs-start 1 \
+            --bs-end 8 \
+            --bs-step 1 \
+            --input-len 512 \
+            --output-len 128 \
+            --output-json latency_bs \
+            2>&1 | tee benchmark.log
+
+      - name: Generate summary page
+        run: | #shell
+          python3 ${GITHUB_WORKSPACE}/.github/scripts/latency_to_table.py --base-filename latency_bs --output-dir ${GITHUB_WORKSPACE}
+          cat ${GITHUB_WORKSPACE}/table_markdown.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Merge all benchmark data
+        run: python3 ${GITHUB_WORKSPACE}/.github/scripts/merge_data_points.py
+
+
+      - name: Configure Git safe directory
+        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+
+      - name: Commit data point
+        run: | #shell
+          # idk why this problem exists
+          # solution is here: https://stackoverflow.com/questions/72978485/git-submodule-update-failed-with-fatal-detected-dubious-ownership-in-reposit
+          git config --global --add safe.directory ${GITHUB_WORKSPACE}
+          git config --global user.name 'GitHub Action'
+          git config --global user.email 'action@github.com'
+
+          git add benchmark_history/
+          git add data.json
+          git commit -m "Add benchmark data for $(date -u)" || exit 0
+          git push
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: latency-results-${{ github.run_number }}
+          path: |
+            *.json
+            *.log
+
+      - name: Notify Slack on failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#ext-cameron-semianalysis'
+          text: 'Benchmark workflow failed'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          
+  benchmark-online:
+    runs-on: self-hosted
+    container:
+      image: vllm/vllm-openai:v0.10.1.1
+      options: >-
+        --gpus all
+        --ipc=host
+        -v /home/ubuntu/.cache/huggingface:/home/ubuntu/.cache/huggingface
+        --entrypoint /bin/bash
+      env:
+        HUGGING_FACE_HUB_TOKEN: ${{ secrets.HF_TOKEN }}
+        HF_HOME: /home/ubuntu/.cache/huggingface
+
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Serve model
         shell: bash
         run: | # shell
