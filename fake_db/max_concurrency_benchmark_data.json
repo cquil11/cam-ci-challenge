@@ -1,50 +1,58 @@
 [
   {
-    "timestamp": "2025-09-05T21:38:38.079584Z",
+    "timestamp": "2025-09-05T22:44:52.976921Z",
     "max_concurrency": 1,
-    "total_token_throughput": 563.9538674276929,
-    "tokens_per_sec_user": 93.84583155979192,
-    "mean_tpot_ms": 10.65577429896682,
-    "mean_ttft_ms": 50.89926720102085
+    "total_token_throughput": 563.936975280229,
+    "tokens_per_sec_user": 93.58379921806224,
+    "mean_tpot_ms": 10.685610205564233,
+    "mean_ttft_ms": 30.128191300900653
   },
   {
-    "timestamp": "2025-09-05T21:38:38.079584Z",
+    "timestamp": "2025-09-05T22:44:52.976921Z",
     "max_concurrency": 2,
-    "total_token_throughput": 1087.4534308123962,
-    "tokens_per_sec_user": 92.35977411308922,
-    "mean_tpot_ms": 10.827224401562066,
-    "mean_ttft_ms": 44.33706060081022
+    "total_token_throughput": 1098.6342321682291,
+    "tokens_per_sec_user": 92.6924598674375,
+    "mean_tpot_ms": 10.788364031228996,
+    "mean_ttft_ms": 33.72576865076553
   },
   {
-    "timestamp": "2025-09-05T21:38:38.079584Z",
+    "timestamp": "2025-09-05T22:44:52.976921Z",
     "max_concurrency": 4,
-    "total_token_throughput": 2093.494338559566,
-    "tokens_per_sec_user": 88.6924898422422,
-    "mean_tpot_ms": 11.274911796688821,
-    "mean_ttft_ms": 49.87303175039415
+    "total_token_throughput": 2155.1277901861913,
+    "tokens_per_sec_user": 90.4971519619083,
+    "mean_tpot_ms": 11.050071503033775,
+    "mean_ttft_ms": 35.935371048617526
   },
   {
-    "timestamp": "2025-09-05T21:38:38.079584Z",
+    "timestamp": "2025-09-05T22:44:52.976921Z",
     "max_concurrency": 8,
-    "total_token_throughput": 4076.922171285411,
-    "tokens_per_sec_user": 82.09391735923548,
-    "mean_tpot_ms": 12.18117044681997,
-    "mean_ttft_ms": 60.41816215074505
+    "total_token_throughput": 4260.73846619386,
+    "tokens_per_sec_user": 86.5157219268914,
+    "mean_tpot_ms": 11.558592793631572,
+    "mean_ttft_ms": 43.465967499651015
   },
   {
-    "timestamp": "2025-09-05T21:38:38.079584Z",
+    "timestamp": "2025-09-05T22:44:52.976921Z",
     "max_concurrency": 16,
-    "total_token_throughput": 6972.266333780798,
-    "tokens_per_sec_user": 71.56689967229597,
-    "mean_tpot_ms": 13.972940068369438,
-    "mean_ttft_ms": 82.03211653735707
+    "total_token_throughput": 7434.217972353705,
+    "tokens_per_sec_user": 78.24263913200102,
+    "mean_tpot_ms": 12.780754983391184,
+    "mean_ttft_ms": 70.85033911271239
   },
   {
-    "timestamp": "2025-09-05T21:38:38.079584Z",
+    "timestamp": "2025-09-05T22:44:52.976921Z",
     "max_concurrency": 32,
-    "total_token_throughput": 11591.044177988371,
-    "tokens_per_sec_user": 61.02242231182024,
-    "mean_tpot_ms": 16.387418953808012,
-    "mean_ttft_ms": 158.8201189215397
+    "total_token_throughput": 11468.275257113297,
+    "tokens_per_sec_user": 58.90432270409318,
+    "mean_tpot_ms": 16.976682764413,
+    "mean_ttft_ms": 174.25018629364786
+  },
+  {
+    "timestamp": "2025-09-05T22:44:52.976921Z",
+    "max_concurrency": 64,
+    "total_token_throughput": 17126.594409763737,
+    "tokens_per_sec_user": 44.16003500610694,
+    "mean_tpot_ms": 22.644909585368513,
+    "mean_ttft_ms": 288.09004258471305
   }
 ]
