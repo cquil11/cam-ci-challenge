@@ -82,7 +82,9 @@ jobs:
           done
 
       - name: Parse results and generate summary
-        run: python3 ${GITHUB_WORKSPACE}/.github/scripts/e2e_benchmark_postprocess.py
+        run: |
+          pip install -r ${GITHUB_WORKSPACE}/.github/scripts/requirements.txt
+          python3 ${GITHUB_WORKSPACE}/.github/scripts/e2e_benchmark_postprocess.py
 
       - name: Upload logs
         uses: actions/upload-artifact@v4
