@@ -780,9 +780,9 @@
                 charts['cost-efficiency-scatter-chart'].destroy();
             }
 
-            // Data mapping: x = total_token_throughput, y = cost_per_million_toks
+            // Data mapping: x = tokens/sec/user, y = cost_per_million_toks
             const plotData = concurrencyData.map(point => ({
-                x: point.total_token_throughput,
+                x: point.tokens_per_sec_user,
                 y: point.cost_per_million_toks
             }));
 
@@ -810,7 +810,7 @@
                         x: {
                             title: {
                                 display: true,
-                                text: 'Total Token Throughput (tok/s)',
+                                text: 'Interactivity (tok/s/user)',
                                 color: '#374151',
                                 font: {
                                     size: 14,
@@ -1009,7 +1009,7 @@
                             </p>
                         </div>
                         <div class="chart-container concurrency-chart">
-                            <h4 class="chart-title">Throughput vs Cost Efficiency Trade-off</h4>
+                            <h4 class="chart-title">Cost vs Interactivity Trade-off</h4>
                             <div class="chart-wrapper">
                                 <canvas id="cost-efficiency-scatter-chart"></canvas>
                             </div>
