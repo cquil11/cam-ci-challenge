@@ -1,58 +1,65 @@
 [
   {
-    "timestamp": "2025-09-05T22:44:52.976921Z",
+    "timestamp": "2025-09-05T22:59:47.082457Z",
     "max_concurrency": 1,
-    "total_token_throughput": 563.936975280229,
-    "tokens_per_sec_user": 93.58379921806224,
-    "mean_tpot_ms": 10.685610205564233,
-    "mean_ttft_ms": 30.128191300900653
+    "total_token_throughput": 562.5192616081875,
+    "tokens_per_sec_user": 93.60477661426529,
+    "mean_tpot_ms": 10.683215495731453,
+    "mean_ttft_ms": 51.02309920039261,
+    "cost_per_million_toks": 0.9876205020380574
   },
   {
-    "timestamp": "2025-09-05T22:44:52.976921Z",
+    "timestamp": "2025-09-05T22:59:47.082457Z",
     "max_concurrency": 2,
-    "total_token_throughput": 1098.6342321682291,
-    "tokens_per_sec_user": 92.6924598674375,
-    "mean_tpot_ms": 10.788364031228996,
-    "mean_ttft_ms": 33.72576865076553
+    "total_token_throughput": 1089.4681929696783,
+    "tokens_per_sec_user": 92.45619277213598,
+    "mean_tpot_ms": 10.815933146463882,
+    "mean_ttft_ms": 43.81867249976494,
+    "cost_per_million_toks": 0.5099327902737749
   },
   {
-    "timestamp": "2025-09-05T22:44:52.976921Z",
+    "timestamp": "2025-09-05T22:59:47.082457Z",
     "max_concurrency": 4,
-    "total_token_throughput": 2155.1277901861913,
-    "tokens_per_sec_user": 90.4971519619083,
-    "mean_tpot_ms": 11.050071503033775,
-    "mean_ttft_ms": 35.935371048617526
+    "total_token_throughput": 2092.496654138166,
+    "tokens_per_sec_user": 88.84695311955069,
+    "mean_tpot_ms": 11.255310000945332,
+    "mean_ttft_ms": 53.924860227198224,
+    "cost_per_million_toks": 0.2654988979107217
   },
   {
-    "timestamp": "2025-09-05T22:44:52.976921Z",
+    "timestamp": "2025-09-05T22:59:47.082457Z",
     "max_concurrency": 8,
-    "total_token_throughput": 4260.73846619386,
-    "tokens_per_sec_user": 86.5157219268914,
-    "mean_tpot_ms": 11.558592793631572,
-    "mean_ttft_ms": 43.465967499651015
+    "total_token_throughput": 4107.560463451287,
+    "tokens_per_sec_user": 82.79088714357414,
+    "mean_tpot_ms": 12.078624043076408,
+    "mean_ttft_ms": 65.19335471293743,
+    "cost_per_million_toks": 0.13525194832768503
   },
   {
-    "timestamp": "2025-09-05T22:44:52.976921Z",
+    "timestamp": "2025-09-05T22:59:47.082457Z",
     "max_concurrency": 16,
-    "total_token_throughput": 7434.217972353705,
-    "tokens_per_sec_user": 78.24263913200102,
-    "mean_tpot_ms": 12.780754983391184,
-    "mean_ttft_ms": 70.85033911271239
+    "total_token_throughput": 7045.11013127401,
+    "tokens_per_sec_user": 72.35952149120797,
+    "mean_tpot_ms": 13.819881328561642,
+    "mean_ttft_ms": 82.24836626241085,
+    "cost_per_million_toks": 0.07885690148254518
   },
   {
-    "timestamp": "2025-09-05T22:44:52.976921Z",
+    "timestamp": "2025-09-05T22:59:47.082457Z",
     "max_concurrency": 32,
-    "total_token_throughput": 11468.275257113297,
-    "tokens_per_sec_user": 58.90432270409318,
-    "mean_tpot_ms": 16.976682764413,
-    "mean_ttft_ms": 174.25018629364786
+    "total_token_throughput": 11631.593142642134,
+    "tokens_per_sec_user": 60.22924604633692,
+    "mean_tpot_ms": 16.603229587676683,
+    "mean_ttft_ms": 140.25548642225658,
+    "cost_per_million_toks": 0.047762636531607595
   },
   {
-    "timestamp": "2025-09-05T22:44:52.976921Z",
+    "timestamp": "2025-09-05T22:59:47.082457Z",
     "max_concurrency": 64,
-    "total_token_throughput": 17126.594409763737,
-    "tokens_per_sec_user": 44.16003500610694,
-    "mean_tpot_ms": 22.644909585368513,
-    "mean_ttft_ms": 288.09004258471305
+    "total_token_throughput": 17171.874843676025,
+    "tokens_per_sec_user": 44.25536472179656,
+    "mean_tpot_ms": 22.596130577305626,
+    "mean_ttft_ms": 252.81842962356222,
+    "cost_per_million_toks": 0.032352644112133906
   }
 ]
