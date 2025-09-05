@@ -301,6 +301,19 @@
             height: 300px;
         }
 
+        /* Special styling for the concurrency scatter plot */
+        .concurrency-chart {
+            grid-column: 1 / -1;
+            background: white;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+        }
+
+        .concurrency-chart .chart-title {
+            color: #374151;
+            font-size: 1.25rem;
+        }
+
         .info-box {
             background: #dbeafe;
             padding: 16px 24px;
@@ -464,6 +477,7 @@
     <script>
         // Global state
         let data = {};
+        let concurrencyData = [];
         let visibleConfigs = {};
         let availableConfigs = [];
         let isLoading = true;
@@ -471,6 +485,7 @@
         let lastUpdated = null;
         let charts = {};
         let collapsedSections = {
+            'concurrency': false,
             'throughput': false,
             'ttft': false,
             'tpot': false,
@@ -514,37 +529,42 @@
                 error = null;
                 render();
 
+                // Fetch e2e benchmark data
                 const response = await fetch('./fake_db/e2e_benchmark_data.json');
+                if (response.ok) {
+                    const jsonData = await response.json();
 
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch fake_db/e2e_benchmark_data.json: ${response.status} ${response.statusText}`);
-                }
-
-                const jsonData = await response.json();
-
-                // Validate data format
-                if (typeof jsonData !== 'object' || Array.isArray(jsonData)) {
-                    throw new Error('fake_db/e2e_benchmark_data.json must contain an object with configuration keys');
-                }
-
-                const configKeys = Object.keys(jsonData);
-                if (configKeys.length === 0) {
-                    throw new Error('fake_db/e2e_benchmark_data.json must contain at least one configuration');
-                }
-
-                configKeys.forEach((configKey) => {
-                    const config = jsonData[configKey];
-                    if (!config.history || !Array.isArray(config.history)) {
-                        throw new Error(`Configuration ${configKey} missing required 'history' array`);
+                    // Validate data format
+                    if (typeof jsonData !== 'object' || Array.isArray(jsonData)) {
+                        throw new Error('fake_db/e2e_benchmark_data.json must contain an object with configuration keys');
                     }
-                    if (config.history.length === 0) {
-                        throw new Error(`Configuration ${configKey} has empty 'history' array`);
-                    }
-                });
 
-                const processedData = processJsonData(jsonData);
-                data = processedData;
-                initializeConfigs(processedData);
+                    const configKeys = Object.keys(jsonData);
+                    if (configKeys.length === 0) {
+                        throw new Error('fake_db/e2e_benchmark_data.json must contain at least one configuration');
+                    }
+
+                    configKeys.forEach((configKey) => {
+                        const config = jsonData[configKey];
+                        if (!config.history || !Array.isArray(config.history)) {
+                            throw new Error(`Configuration ${configKey} missing required 'history' array`);
+                        }
+                        if (config.history.length === 0) {
+                            throw new Error(`Configuration ${configKey} has empty 'history' array`);
+                        }
+                    });
+
+                    const processedData = processJsonData(jsonData);
+                    data = processedData;
+                    initializeConfigs(processedData);
+                }
+
+                // Fetch concurrency data
+                const concurrencyResponse = await fetch('./fake_db/max_concurrency_benchmark_data.json');
+                if (concurrencyResponse.ok) {
+                    concurrencyData = await concurrencyResponse.json();
+                }
+
                 lastUpdated = new Date().toLocaleString();
 
             } catch (err) {
@@ -664,6 +684,91 @@
             });
         }
 
+        // Create concurrency scatter plot
+        function createConcurrencyScatterPlot() {
+            const canvas = document.getElementById('concurrency-scatter-chart');
+            if (!canvas || !concurrencyData || concurrencyData.length === 0) return;
+
+            const ctx = canvas.getContext('2d');
+
+            if (charts['concurrency-scatter-chart']) {
+                charts['concurrency-scatter-chart'].destroy();
+            }
+
+            // Simple data mapping: x = tokens_per_sec_user, y = total_token_throughput
+            const plotData = concurrencyData.map(point => ({
+                x: point.tokens_per_sec_user,
+                y: point.total_token_throughput
+            }));
+
+            charts['concurrency-scatter-chart'] = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Concurrency Trade-off',
+                        data: plotData,
+                        backgroundColor: '#60a5fa',
+                        borderColor: '#2563eb',
+                        pointRadius: 8,
+                        pointHoverRadius: 12
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Interactivity (tok/s/user)',
+                                color: '#374151',
+                                font: {
+                                    size: 14,
+                                    weight: '600'
+                                }
+                            },
+                            ticks: {
+                                color: '#6b7280',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            grid: {
+                                color: '#000000',
+                                lineWidth: 1
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Throughput per GPU (tok/s)',
+                                color: '#374151',
+                                font: {
+                                    size: 14,
+                                    weight: '600'
+                                }
+                            },
+                            ticks: {
+                                color: '#6b7280',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            grid: {
+                                color: '#000000',
+                                lineWidth: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
         function getYAxisLabel(metric) {
             if (metric.includes('throughput')) return 'Tokens/Requests per Second';
             if (metric.includes('ms')) return 'Milliseconds';
@@ -674,8 +779,9 @@
         function toggleConfig(configKey) {
             visibleConfigs[configKey] = !visibleConfigs[configKey];
 
-            // Update all charts
+            // Update all charts (skip concurrency chart)
             Object.keys(charts).forEach(chartId => {
+                if (chartId === 'concurrency-scatter-chart') return; // Skip scatter plot
                 const chart = charts[chartId];
                 const datasetIndex = availableConfigs.indexOf(configKey);
                 if (datasetIndex !== -1) {
@@ -723,7 +829,11 @@
                     section.classList.remove('collapsed');
                     // Recreate charts when expanding
                     setTimeout(() => {
-                        createSectionCharts(sectionName);
+                        if (sectionName === 'concurrency') {
+                            createConcurrencyScatterPlot();
+                        } else {
+                            createSectionCharts(sectionName);
+                        }
                     }, 300);
                 }
             }
@@ -792,46 +902,58 @@
             `;
         }
 
+        // Create concurrency section HTML
+        function createConcurrencySection() {
+            const isCollapsed = collapsedSections['concurrency'];
+
+            return `
+                <div class="metric-section ${isCollapsed ? 'collapsed' : ''}" id="concurrency-section">
+                    <div class="metric-header" onclick="toggleSection('concurrency')">
+                        <h3>Concurrency Trade-off Analysis</h3>
+                        <span class="toggle-icon">▼</span>
+                    </div>
+                    <div class="metric-content">
+                        <div class="chart-container concurrency-chart">
+                            <h4 class="chart-title">Throughput vs Interactivity Trade-off</h4>
+                            <div class="chart-wrapper">
+                                <canvas id="concurrency-scatter-chart"></canvas>
+                            </div>
+                            <p style="text-align: center; margin-top: 16px; color: #6b7280; font-size: 14px;">
+                                Each point represents a different concurrency level. Higher concurrency increases total throughput but reduces per-user interactivity.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         // Render the app
         function render() {
             const app = document.getElementById('app');
 
-            if (isLoading && Object.keys(data).length === 0) {
+            if (isLoading && Object.keys(data).length === 0 && concurrencyData.length === 0) {
                 app.innerHTML = `
                     <div class="loading-screen">
                         <div class="spinner"></div>
                         <h2>Loading vLLM Benchmark Data...</h2>
-                        <p>Fetching data from fake_db/e2e_benchmark_data.json</p>
+                        <p>Fetching data from fake_db/</p>
                     </div>
                 `;
                 return;
             }
 
-            if (error && Object.keys(data).length === 0) {
+            if (error && Object.keys(data).length === 0 && concurrencyData.length === 0) {
                 app.innerHTML = `
                     <div class="error-screen">
                         <div class="error-icon">⚠️</div>
                         <h2>Cannot Load Data</h2>
                         <div class="error-details">
                             <strong>Error:</strong> ${error}
-                            <p><strong>Expected file:</strong> <code>./fake_db/e2e_benchmark_data.json</code></p>
-                            <p><strong>Format:</strong> Object with configuration keys</p>
-                            <pre>{
-  "300_100": {
-    "input_len": 300,
-    "output_len": 100,
-    "total_tokens": 400,
-    "history": [
-      {
-        "timestamp": "2025-09-05T16:16:44.682776Z",
-        "total_token_throughput": 4910.79,
-        "mean_ttft_ms": 37.93,
-        "mean_tpot_ms": 12.28,
-        ...
-      }
-    ]
-  }
-}</pre>
+                            <p><strong>Expected files:</strong></p>
+                            <ul>
+                                <li><code>./fake_db/e2e_benchmark_data.json</code></li>
+                                <li><code>./fake_db/max_concurrency_benchmark_data.json</code></li>
+                            </ul>
                         </div>
                         <button class="retry-btn" onclick="fetchData()">Retry Loading</button>
                     </div>
@@ -858,7 +980,7 @@
                         </div>
                     </div>
 
-                    ${error && Object.keys(data).length > 0 ? `
+                    ${error && (Object.keys(data).length > 0 || concurrencyData.length > 0) ? `
                         <div class="error">
                             <div class="error-title">⚠️ Refresh failed:</div>
                             <p>${error}</p>
@@ -866,60 +988,74 @@
                         </div>
                     ` : ''}
 
-                    <div class="config-controls">
-                        <h2 class="config-controls-title">Input/Output Configuration Controls</h2>
-                        <div class="config-buttons">
-                            ${availableConfigs.map((configKey, index) => {
-                const config = data[configKey];
-                return `
-                                    <button 
-                                        id="config-btn-${configKey}"
-                                        class="config-btn ${visibleConfigs[configKey] ? 'active' : 'inactive'}"
-                                        onclick="toggleConfig('${configKey}')"
-                                    >
-                                        <div 
-                                            id="config-color-${configKey}"
-                                            class="config-color"
-                                            style="
-                                                background-color: ${visibleConfigs[configKey] ? getColorForConfig(configKey, index) : '#ccc'};
-                                                border-color: ${visibleConfigs[configKey] ? getColorForConfig(configKey, index) : '#999'};
-                                            "
-                                        ></div>
-                                        <span>${config.input_len}+${config.output_len} tokens</span>
-                                        <span 
-                                            id="config-status-${configKey}"
-                                            class="config-status"
-                                            style="color: ${visibleConfigs[configKey] ? '#059669' : '#dc2626'}"
-                                        >${visibleConfigs[configKey] ? '✓' : '✗'}</span>
-                                    </button>
-                                `;
-            }).join('')}
-                        </div>
-                        <div class="info-box">
-                            <div class="info-text">
-                                Click buttons above to show/hide configurations • Charts auto-scale to visible data
+                    ${concurrencyData.length > 0 ? createConcurrencySection() : ''}
+
+                    ${Object.keys(data).length > 0 ? `
+                        <div class="config-controls">
+                            <h2 class="config-controls-title">Input/Output Configuration Controls</h2>
+                            <div class="config-buttons">
+                                ${availableConfigs.map((configKey, index) => {
+                    const config = data[configKey];
+                    return `
+                                        <button 
+                                            id="config-btn-${configKey}"
+                                            class="config-btn ${visibleConfigs[configKey] ? 'active' : 'inactive'}"
+                                            onclick="toggleConfig('${configKey}')"
+                                        >
+                                            <div 
+                                                id="config-color-${configKey}"
+                                                class="config-color"
+                                                style="
+                                                    background-color: ${visibleConfigs[configKey] ? getColorForConfig(configKey, index) : '#ccc'};
+                                                    border-color: ${visibleConfigs[configKey] ? getColorForConfig(configKey, index) : '#999'};
+                                                "
+                                            ></div>
+                                            <span>${config.input_len}+${config.output_len} tokens</span>
+                                            <span 
+                                                id="config-status-${configKey}"
+                                                class="config-status"
+                                                style="color: ${visibleConfigs[configKey] ? '#059669' : '#dc2626'}"
+                                            >${visibleConfigs[configKey] ? '✓' : '✗'}</span>
+                                        </button>
+                                    `;
+                }).join('')}
+                            </div>
+                            <div class="info-box">
+                                <div class="info-text">
+                                    Click buttons above to show/hide configurations • Charts auto-scale to visible data
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    ${createMetricSection('throughput', 'Throughput Metrics')}
-                    ${createMetricSection('ttft', 'Time to First Token (TTFT) Metrics')}
-                    ${createMetricSection('tpot', 'Time per Output Token (TPOT) Metrics')}
-                    ${createMetricSection('itl', 'Inter-Token Latency (ITL) Metrics')}
+                        ${createMetricSection('throughput', 'Throughput Metrics')}
+                        ${createMetricSection('ttft', 'Time to First Token (TTFT) Metrics')}
+                        ${createMetricSection('tpot', 'Time per Output Token (TPOT) Metrics')}
+                        ${createMetricSection('itl', 'Inter-Token Latency (ITL) Metrics')}
+                    ` : ''}
 
                     <div class="footer">
-                        Data automatically refreshes every 30 seconds • ${Object.keys(data).length} configurations loaded
+                        Data automatically refreshes every 30 seconds • 
+                        ${Object.keys(data).length > 0 ? `${Object.keys(data).length} configurations loaded` : ''}
+                        ${concurrencyData.length > 0 ? `${concurrencyData.length} concurrency points loaded` : ''}
                     </div>
                 </div>
             `;
 
             // Create charts after DOM is updated
             setTimeout(() => {
-                Object.keys(collapsedSections).forEach(sectionName => {
-                    if (!collapsedSections[sectionName]) {
-                        createSectionCharts(sectionName);
-                    }
-                });
+                // Create concurrency scatter plot if data is available
+                if (concurrencyData.length > 0 && !collapsedSections['concurrency']) {
+                    createConcurrencyScatterPlot();
+                }
+
+                // Create time-series charts if data is available
+                if (Object.keys(data).length > 0) {
+                    Object.keys(collapsedSections).forEach(sectionName => {
+                        if (sectionName !== 'concurrency' && !collapsedSections[sectionName]) {
+                            createSectionCharts(sectionName);
+                        }
+                    });
+                }
             }, 100);
         }
 
